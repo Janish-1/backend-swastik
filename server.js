@@ -10,6 +10,7 @@ const fs = require("fs");
 const dotenv = require("dotenv");
 const moment = require("moment");
 const cloudinary = require("cloudinary").v2;
+
 // Specify the absolute path to your .env file
 const envPath = path.resolve(__dirname, "../.env");
 
@@ -31,54 +32,29 @@ const app = express();
 const PORT = 3001;
 
 mongoose.connect(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  // Specifying database
-  dbName: "devdb",
+dbName: "admindatabase",
 });
 
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "MongoDB connection error:"));
-db.once("open", () => {
-  console.log("Connected to MongoDB Atlas");
-});
+const userdetailsSchema = new mongoose.Schema(
+  {
+    image: { type: String },
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true }, // Adding password field
+    userType: {
+      type: String,
+      enum: ["admin", "agent", "franchise", "manager"],
+      default: "agent",
+    },
+    branchName: { type: String, unique: true },
+    contactphone: { type: Number, unique: true },
+    branchaddress: { type: String },
+  },
+  { collection: "allusers" }
+);
 
 app.use(bodyParser.json());
 app.use(cors());
-
-// User login database
-const userSchema = new mongoose.Schema(
-  {
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    businessName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    branch: { type: String, required: true },
-    countryCode: { type: String, required: true },
-    mobile: { type: String, required: true },
-    password: { type: String, required: true },
-    gender: { type: String, required: true },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
-    zipCode: { type: String, required: true },
-    address: { type: String, required: true },
-    creditSource: { type: String, required: true },
-    role: { type: String, required: true },
-  },
-  { collection: "userdata" }
-);
-
-const branchesSchema = new mongoose.Schema(
-  {
-    branchName: { type: String, required: true, unique: true },
-    managerName: { type: String, required: true },
-    contactemail: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    contactphone: { type: Number, required: true, unique: true },
-    branchaddress: { type: String, required: true },
-  },
-  { collection: "branches" }
-);
 
 const memberSchema = new mongoose.Schema(
   {
@@ -167,22 +143,6 @@ const expenseSchema = new mongoose.Schema(
   { collection: "expenses" }
 );
 
-const intuserSchema = new mongoose.Schema(
-  {
-    image: { type: String, required: true },
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // Adding password field
-    userType: {
-      type: String,
-      enum: ["user", "admin", "agent", "franchise"],
-      default: "user",
-    },
-    status: { type: String, enum: ["active", "inactive"], default: "active" },
-  },
-  { collection: "intuserdata" }
-);
-
 const repaymentDetailsSchema = new mongoose.Schema(
   {
     repaymentId: { type: String, ref: "repaymentModel" },
@@ -223,29 +183,12 @@ const revenueSchema = new mongoose.Schema(
   { collection: "Revenue" }
 );
 
-const userdetailsSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // Adding password field
-    userType: {
-      type: String,
-      enum: ["user", "admin", "agent", "franchise", "manager"],
-      default: "user",
-    },
-  },
-  { collection: "allusers" }
-);
-
-const userModel = mongoose.model("userdata", userSchema);
-const branchesModel = mongoose.model("branches", branchesSchema);
 const memberModel = mongoose.model("members", memberSchema);
 const loansModel = mongoose.model("loans", loanSchema);
 const repaymentModel = mongoose.model("repayments", repaymentSchema);
 const AccountModel = mongoose.model("accounts", accountSchema);
 const TransactionsModel = mongoose.model("transactions", transactionSchema);
 const ExpenseModel = mongoose.model("expenses", expenseSchema);
-const intuserModel = mongoose.model("intuserdata", intuserSchema);
 const categoryModel = mongoose.model("category", categorySchema);
 const Revenue = mongoose.model("Revenue", revenueSchema); // Assuming you have a Revenue model defined
 const allusersModel = mongoose.model("allusers", userdetailsSchema);
@@ -479,18 +422,18 @@ app.post("/usernamedata", (req, res) => {
 app.post("/createbranch", limiter, async (req, res) => {
   const {
     branchName,
-    managerName,
-    contactemail,
+    name,
+    email,
     password,
     contactphone,
     branchaddress,
   } = req.body;
 
   try {
-    const newUser = new branchesModel({
+    const newUser = new allusersModel({
       branchName,
-      managerName,
-      contactemail,
+      name,
+      email,
       password,
       contactphone,
       branchaddress,
@@ -511,20 +454,20 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
   const branchId = req.params.id;
   const {
     branchName,
-    managerName,
-    contactemail,
+    name,
+    email,
     password,
     contactphone,
     branchaddress,
   } = req.body;
 
   try {
-    const updatedBranch = await branchesModel.findByIdAndUpdate(
+    const updatedBranch = await allusersModel.findByIdAndUpdate(
       branchId,
       {
         branchName,
-        managerName,
-        contactemail,
+        name,
+        email,
         password,
         contactphone,
         branchaddress,
@@ -548,7 +491,7 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
 app.post("/deletebranch/:id", limiter, async (req, res) => {
   const branchId = req.params.id;
   try {
-    const deletedBranch = await branchesModel.findByIdAndDelete(branchId);
+    const deletedBranch = await allusersModel.findByIdAndDelete(branchId);
 
     if (!deletedBranch) {
       return res.status(404).json({ message: "Branch not found" });
@@ -565,7 +508,7 @@ app.post("/deletebranch/:id", limiter, async (req, res) => {
 
 app.get("/readbranch", limiter, async (req, res) => {
   try {
-    const allBranches = await branchesModel.find();
+    const allBranches = await allusersModel.find();
 
     res.status(200).json({
       message: "All branches retrieved successfully",
@@ -583,7 +526,7 @@ app.get("/getbranch/:id", async (req, res) => {
 
   try {
     // Find the branch by ID in your MongoDB database using Mongoose
-    const branch = await branchesModel.findById(branchId);
+    const branch = await allusersModel.findById(branchId);
 
     if (!branch) {
       return res.status(404).json({ message: "Branch not found" });
@@ -600,7 +543,7 @@ app.get("/getbranch/:id", async (req, res) => {
 // Define an endpoint to fetch branch names
 app.get("/branches/names", limiter, async (req, res) => {
   try {
-    const allBranches = await branchesModel.find({}, { branchName: 1, _id: 0 });
+    const allBranches = await allusersModel.find({}, { branchName: 1, _id: 0 });
 
     const branchNames = allBranches.map((branch) => branch.branchName);
 
@@ -1494,7 +1437,7 @@ app.post("/users", async (req, res) => {
     }
 
     // Create a new user object with Mongoose User model
-    const newUser = new intuserModel({
+    const newUser = new allusersModel({
       name,
       email,
       password,
@@ -1519,7 +1462,7 @@ app.post("/users", async (req, res) => {
 // Get all users
 app.get("/api/users", async (req, res) => {
   try {
-    const users = await intuserModel.find();
+    const users = await allusersModel.find();
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1530,7 +1473,7 @@ app.get("/api/users", async (req, res) => {
 app.get("/usersdetails/:id", async (req, res) => {
   try {
     const userId = req.params.id;
-    const user = await intuserModel.findById(userId);
+    const user = await allusersModel.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -1560,7 +1503,7 @@ app.put("/updateintuser/:id", upload.single("image"), async (req, res) => {
     }
 
     // Find the user by ID and update the user data
-    const updatedUser = await intuserModel.findByIdAndUpdate(
+    const updatedUser = await allusersModel.findByIdAndUpdate(
       userId,
       updatedUserData,
       { new: true }
@@ -1586,7 +1529,7 @@ app.delete("/api/users/:id", async (req, res) => {
     const userId = req.params.id;
 
     // Find and delete the user entry from the database
-    const deletedUser = await intuserModel.findByIdAndDelete(userId);
+    const deletedUser = await allusersModel.findByIdAndDelete(userId);
     if (!deletedUser) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -1933,7 +1876,7 @@ app.get("/pendingLoans", async (req, res) => {
 app.get("/api/cleanOrphanedImages", async (req, res) => {
   try {
     // Retrieve all users with their associated image file names from the database
-    const users = await intuserModel.find({}, "image");
+    const users = await allusersModel.find({}, "image");
 
     // Get the list of image file names from the database
     const imageFileNames = users.map((user) => user.image).filter(Boolean);
@@ -2157,13 +2100,31 @@ app.post("/all-login", limiter, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    // Admin Franchise agent User
-    // This is not secure - comparing passwords in plaintext
+
     if (user.password !== password) {
       return res.status(401).json({ message: "Invalid Password" });
     }
 
-    // If the passwords match, create a JWT
+    // if (user.userType === "manager") {
+    //   const userDbName = user._id.toString(); // Get the ObjectId as a string and use it as the database name
+
+    //   mongoose.connection.close(); // Close the default connection
+
+    //   // Connect to the user-specific database
+    //   mongoose.connect(uri, {
+    //     useNewUrlParser: true,
+    //     useUnifiedTopology: true,
+    //     dbName: userDbName,
+    //   });
+
+    //   const userDb = mongoose.connection;
+
+    //   userDb.on("error", console.error.bind(console, "MongoDB connection error:"));
+    //   userDb.once("open", () => {
+    //     console.log(`Connected to user-specific database: ${userDbName}`);
+    //   });
+    // }
+
     const payload = {
       userId: user._id,
       email: user.email,
@@ -2173,7 +2134,7 @@ app.post("/all-login", limiter, async (req, res) => {
       // Add other necessary user information to the payload
     };
 
-    const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" }); // Set your own secret key and expiration time
+    const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
 
     res.json({ message: "Login Success!", token });
   } catch (error) {
