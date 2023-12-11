@@ -8,7 +8,8 @@ const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 const fs = require("fs");
 const dotenv = require("dotenv");
-const moment = require('moment');
+const moment = require("moment");
+const cloudinary = require("cloudinary").v2;
 // Specify the absolute path to your .env file
 const envPath = path.resolve(__dirname, "../.env");
 
@@ -18,6 +19,13 @@ dotenv.config({ path: envPath });
 require("dotenv").config(); // Load environment variables from .env file
 
 const uri = process.env.MONGODB_URI;
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET,
+  secure: true,
+});
 
 const app = express();
 const PORT = 3001;
@@ -37,13 +45,6 @@ db.once("open", () => {
 
 app.use(bodyParser.json());
 app.use(cors());
-
-const uploadDir = "uploads";
-
-// Check if the directory exists, create it if it doesn't
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
 
 // User login database
 const userSchema = new mongoose.Schema(
@@ -119,6 +120,8 @@ const repaymentSchema = new mongoose.Schema(
     interest: { type: Number, required: true },
     latePenalties: { type: Number, required: true },
     totalAmount: { type: Number, required: true },
+    loanRepaymentStatus: { type: String, required: true },
+    monthstatus: { type: String, required: true },
   },
   { collection: "repayments" }
 );
@@ -166,7 +169,7 @@ const expenseSchema = new mongoose.Schema(
 
 const intuserSchema = new mongoose.Schema(
   {
-    image: { type: String },
+    image: { type: String, required: true },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true }, // Adding password field
@@ -246,21 +249,26 @@ const intuserModel = mongoose.model("intuserdata", intuserSchema);
 const categoryModel = mongoose.model("category", categorySchema);
 const Revenue = mongoose.model("Revenue", revenueSchema); // Assuming you have a Revenue model defined
 const allusersModel = mongoose.model("allusers", userdetailsSchema);
-const RepaymentDetails = mongoose.model("RepaymentDetails",repaymentDetailsSchema);
+const RepaymentDetails = mongoose.model(
+  "RepaymentDetails",
+  repaymentDetailsSchema
+);
 
-// Multer configuration for handling file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads"); // Uploads directory where files will be stored
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${Date.now()}-${uuidv4()}`;
-    const fileExtension = path.extname(file.originalname);
-    cb(null, `${uniqueSuffix}${fileExtension}`);
-  },
-});
+// // Multer configuration for handling file uploads
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "uploads"); // Uploads directory where files will be stored
+//   },
+//   filename: (req, file, cb) => {
+//     const uniqueSuffix = `${Date.now()}-${uuidv4()}`;
+//     const fileExtension = path.extname(file.originalname);
+//     cb(null, `${uniqueSuffix}${fileExtension}`);
+//   },
+// });
 
-const upload = multer({ storage });
+// Multer storage configuration
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // Set security headers
 app.use((req, res, next) => {
@@ -303,10 +311,10 @@ app.post("/create", limiter, async (req, res) => {
 
   let role = "user";
   const userEmailDomain = email.split("@")[1]; // Extract domain from email
-  console.log("User email domain:", userEmailDomain); // Check the extracted domain
+  // console.log("User email domain:", userEmailDomain); // Check the extracted domain
   if (userEmailDomain === "yourcompany.com") {
     role = "admin"; // Assign admin role for specific email domain
-    console.log("User role:", role); // Check the role being assigned
+    // console.log("User role:", role); // Check the role being assigned
   }
 
   try {
@@ -935,6 +943,8 @@ app.post("/repayments", async (req, res) => {
       interest,
       latePenalties,
       totalAmount,
+      loanRepaymentStatus,
+      monthstatus,
     } = req.body;
 
     const newRepayment = new repaymentModel({
@@ -946,6 +956,8 @@ app.post("/repayments", async (req, res) => {
       interest,
       latePenalties,
       totalAmount,
+      loanRepaymentStatus: "ongoing",
+      monthstatus: "unpaid",
     });
 
     const savedRepayment = await newRepayment.save();
@@ -962,7 +974,24 @@ app.post("/repayments", async (req, res) => {
 
 app.get("/repayments", async (req, res) => {
   try {
-    const allRepayments = await repaymentModel.find();
+    const allRepayments = await repaymentModel.find({
+      loanRepaymentStatus: { $ne: "completed" },
+    });
+
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1; // Adding 1 because getMonth() returns a zero-based index
+
+    allRepayments.forEach((repayment) => {
+      const dueDate = new Date(repayment.dueDate);
+      const dueMonth = dueDate.getMonth() + 1;
+
+      // Check if the due month matches the current month
+      if (dueMonth !== currentMonth) {
+        repayment.monthstatus = "paid"; // Set as paid if due month is not the current month
+      } else {
+        repayment.monthstatus = "unpaid"; // Set as unpaid if due month is the current month
+      }
+    });
 
     res.status(200).json({
       message: "All repayment records retrieved successfully",
@@ -1425,13 +1454,44 @@ app.delete("/expenses/:id", async (req, res) => {
   }
 });
 
-// Route to add a new user to the database
-app.post("/users", upload.single("image"), async (req, res) => {
+// Handle file upload to Cloudinary
+app.post("/upload", upload.single("image"), async (req, res) => {
   try {
-    const { name, email, password, userType, status } = req.body;
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
-    // Get the file path of the uploaded image
-    const imagePath = req.file.path;
+    // Convert the buffer to a base64 data URL
+    const base64String = `data:${
+      req.file.mimetype
+    };base64,${req.file.buffer.toString("base64")}`;
+
+    const result = await cloudinary.uploader.upload(base64String, {
+      resource_type: "auto", // Specify the resource type if necessary
+    });
+
+    // console.log(result);
+    // Get the Cloudinary URL of the uploaded image
+    const imageUrl = result.secure_url;
+    // console.log(imageUrl);
+
+    res.status(200).json({ url: imageUrl }); // Send the image URL back in the response
+  } catch (error) {
+    res.status(500).json({
+      message: "Error uploading file to Cloudinary",
+      error: error.message,
+    });
+  }
+});
+
+// Route to add a new user to the database
+app.post("/users", async (req, res) => {
+  try {
+    const { name, email, password, userType, status, imageUrl } = req.body;
+
+    if (!imageUrl) {
+      return res.status(400).json({ message: "No image URL provided" });
+    }
 
     // Create a new user object with Mongoose User model
     const newUser = new intuserModel({
@@ -1440,7 +1500,7 @@ app.post("/users", upload.single("image"), async (req, res) => {
       password,
       userType,
       status,
-      image: imagePath, // Assign the file path to the user's image property
+      image: imageUrl, // Assign the Cloudinary URL to the user's image property
     });
 
     // Save the new user to the database
@@ -1535,19 +1595,6 @@ app.delete("/api/users/:id", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-});
-
-// API endpoint for handling file upload
-app.post("/api/upload", upload.single("image"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
-  }
-
-  // Logic to store the file path in your database (replace this with your database storage logic)
-  const filePath = req.file.path; // File path where the image is stored
-  // Store `filePath` in your database associated with the user or as needed
-
-  return res.status(200).json({ filePath });
 });
 
 app.get("/accountstatement", async (req, res) => {
@@ -1910,7 +1957,7 @@ app.get("/api/cleanOrphanedImages", async (req, res) => {
           console.error(`Error deleting file: ${fileName}`, err);
           // Handle deletion error if required
         } else {
-          console.log(`File ${fileName} deleted.`);
+          // console.log(`File ${fileName} deleted.`);
         }
       });
     });
@@ -2407,12 +2454,10 @@ app.put("/approveLoan/:loanId", async (req, res) => {
 
     res.status(200).json({ message: "Loan status updated to Approved", loan });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error updating loan status to Approved",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating loan status to Approved",
+      error: error.message,
+    });
   }
 });
 
@@ -2434,12 +2479,10 @@ app.put("/cancelLoan/:loanId", async (req, res) => {
 
     res.status(200).json({ message: "Loan status updated to Cancelled", loan });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error updating loan status to Cancelled",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating loan status to Cancelled",
+      error: error.message,
+    });
   }
 });
 
@@ -2463,12 +2506,10 @@ app.put("/objection/:loanId", async (req, res) => {
       .status(200)
       .json({ message: "Objection column updated successfully", loan });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        message: "Error updating objection column",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating objection column",
+      error: error.message,
+    });
   }
 });
 
@@ -2500,6 +2541,12 @@ app.post(
       account.currentBalance -= repayment.dueAmount;
       repayment.totalAmount -= repayment.dueAmount;
       repayment.paymentDate = new Date(); // Set payment date to current date or the date of payment
+      repayment.dueDate = new Date(); // Set it to the current date
+      repayment.dueDate.setMonth(repayment.dueDate.getMonth() + 1); // Increase by one month
+
+      if (loan.endDate <= repayment.dueDate) {
+        repayment.loanRepaymentStatus = "completed";
+      }
 
       // Create RepaymentDetails document
       const repaymentDetails = new RepaymentDetails({
@@ -2530,27 +2577,27 @@ app.post(
 );
 
 // Endpoint to check if repayment data exists for a loan ID in the current month
-app.get('/api/checkRepaymentExists/:loanId', async (req, res) => {
+app.get("/api/checkRepaymentExists/:loanId", async (req, res) => {
   try {
     const { loanId } = req.params;
 
     // Get the current month in 'YYYY-MM' format
-    const currentMonth = moment().format('YYYY-MM');
+    const currentMonth = moment().format("YYYY-MM");
 
     // Find a repayment for the specified loanId within the current month
     const repayment = await RepaymentDetails.findOne({
       loanId,
       paymentDate: {
         $gte: new Date(`${currentMonth}-01`), // Start of the current month
-        $lte: new Date(moment(`${currentMonth}-01`).endOf('month').toDate()), // End of the current month
+        $lte: new Date(moment(`${currentMonth}-01`).endOf("month").toDate()), // End of the current month
       },
     });
 
     const repaymentExistsForCurrentMonth = !!repayment;
     res.json({ exists: repaymentExistsForCurrentMonth });
   } catch (error) {
-    console.error('Error checking repayment data:', error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("Error checking repayment data:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
@@ -2578,7 +2625,6 @@ app.get("/repayments/:id/loanId", async (req, res) => {
     });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
