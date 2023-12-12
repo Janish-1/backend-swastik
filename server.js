@@ -31,6 +31,9 @@ cloudinary.config({
 const app = express();
 const PORT = 3001;
 
+app.use(bodyParser.json());
+app.use(cors());
+
 mongoose.connect(uri, {
 dbName: "admindatabase",
 });
@@ -52,9 +55,6 @@ const userdetailsSchema = new mongoose.Schema(
   },
   { collection: "allusers" }
 );
-
-app.use(bodyParser.json());
-app.use(cors());
 
 const memberSchema = new mongoose.Schema(
   {
