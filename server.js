@@ -48,6 +48,7 @@ const userdetailsSchema = new mongoose.Schema(
       type: String,
       enum: ["admin", "agent", "franchise", "manager"],
       default: "agent",
+      required: true,
     },
     branchName: { type: String, unique: true },
     contactphone: { type: Number, unique: true },
@@ -191,11 +192,16 @@ const TransactionsModel = mongoose.model("transactions", transactionSchema);
 const ExpenseModel = mongoose.model("expenses", expenseSchema);
 const categoryModel = mongoose.model("category", categorySchema);
 const Revenue = mongoose.model("Revenue", revenueSchema); // Assuming you have a Revenue model defined
-const allusersModel = mongoose.model("allusers", userdetailsSchema);
 const RepaymentDetails = mongoose.model(
   "RepaymentDetails",
   repaymentDetailsSchema
 );
+
+loginDB = mongoose.createConnection(uri, {
+dbName: "logindatabase",
+});
+
+const allusersModel = loginDB.model("allusers", userdetailsSchema);
 
 // // Multer configuration for handling file uploads
 // const storage = multer.diskStorage({
