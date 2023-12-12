@@ -50,8 +50,8 @@ const userdetailsSchema = new mongoose.Schema(
       default: "agent",
       required: true,
     },
-    branchName: { type: String, unique: true },
-    contactphone: { type: Number, unique: true },
+    branchName: { type: String },
+    contactphone: { type: Number},
     branchaddress: { type: String },
   },
   { collection: "allusers" }
@@ -444,7 +444,7 @@ app.post("/createbranch", limiter, async (req, res) => {
       password,
       contactphone,
       branchaddress,
-      userType,
+      userType: 'manager', // Set userType to 'manager'
     });
 
     await newUser.save();
@@ -467,6 +467,7 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
     password,
     contactphone,
     branchaddress,
+    userType,
   } = req.body;
 
   try {
@@ -479,6 +480,7 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
         password,
         contactphone,
         branchaddress,
+        userType: 'manager', // Set userType to 'manager'
       },
       { new: true }
     );
@@ -516,15 +518,15 @@ app.post("/deletebranch/:id", limiter, async (req, res) => {
 
 app.get("/readbranch", limiter, async (req, res) => {
   try {
-    const allBranches = await allusersModel.find();
+    const managerBranches = await allusersModel.find({ userType: 'manager' });
 
     res.status(200).json({
-      message: "All branches retrieved successfully",
-      data: allBranches,
+      message: "Manager branches retrieved successfully",
+      data: managerBranches,
     });
   } catch (error) {
-    console.error("Error retrieving branches:", error);
-    res.status(500).json({ message: "Error retrieving branches" });
+    console.error("Error retrieving manager branches:", error);
+    res.status(500).json({ message: "Error retrieving manager branches" });
   }
 });
 
@@ -1438,7 +1440,7 @@ app.post("/upload", upload.single("image"), async (req, res) => {
 // Route to add a new user to the database
 app.post("/users", async (req, res) => {
   try {
-    const { name, email, password, userType, status, imageUrl } = req.body;
+    const { name, email, password, userType, imageUrl } = req.body;
 
     if (!imageUrl) {
       return res.status(400).json({ message: "No image URL provided" });
@@ -1450,7 +1452,6 @@ app.post("/users", async (req, res) => {
       email,
       password,
       userType,
-      status,
       image: imageUrl, // Assign the Cloudinary URL to the user's image property
     });
 
@@ -1467,11 +1468,11 @@ app.post("/users", async (req, res) => {
   }
 });
 
-// Get all users
+// Get all users with userType as 'agent'
 app.get("/api/users", async (req, res) => {
   try {
-    const users = await allusersModel.find();
-    res.status(200).json(users);
+    const agents = await allusersModel.find({ userType: 'agent' });
+    res.status(200).json(agents);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1495,14 +1496,13 @@ app.get("/usersdetails/:id", async (req, res) => {
 app.put("/updateintuser/:id", upload.single("image"), async (req, res) => {
   try {
     const userId = req.params.id; // Extract the user ID from the request parameters
-    const { name, email, password, userType, status } = req.body;
+    const { name, email, password, userType } = req.body;
 
     let updatedUserData = {
       name,
       email,
       password,
       userType,
-      status,
     };
 
     // Check if an image was uploaded and update the image path if needed
