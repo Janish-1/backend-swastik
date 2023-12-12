@@ -84,7 +84,7 @@ const loanSchema = new mongoose.Schema(
   {
     loanId: { type: Number, required: true, unique: true },
     loanProduct: { type: String, required: true },
-    borrower: { type: String, required: true },
+    memberName: { type: String, required: true },
     memberNo: { type: Number, required: true },
     releaseDate: { type: Date, required: true },
     appliedAmount: { type: Number, required: true },
@@ -120,11 +120,22 @@ const accountSchema = new mongoose.Schema(
     memberNo: { type: Number, required: true },
     email: { type: String, required: true },
     branchName: { type: String, required: true },
-    aadhar: { type: String, required: true },
-    pancard: { type: String, required: true },
-    accountType: { type: String, required: true },
+    accountType: { type: String },
     openingBalance: { type: Number, required: true },
-    currentBalance: { type: Number, required: true, default: 0 },
+    currentBalance: { type: Number, default: 0 },
+    photo: { type: String }, // Assuming photo is stored as a String (URL, file path, etc.)
+    fatherName: { type: String },
+    gender: { type: String },
+    maritalStatus: { type: String },
+    dateOfBirth: { type: Date },
+    currentAddress: { type: String },
+    permanentAddress: { type: String },
+    whatsAppNo: { type: String },
+    idProof: { type: String }, // Assuming idProof is stored as a String (URL, file path, etc.)
+    nomineeName: { type: String },
+    relationship: { type: String },
+    nomineeMobileNo: { type: String },
+    nomineeDateOfBirth: { type: Date },
   },
   { collection: "accounts" }
 );
@@ -755,10 +766,10 @@ app.get("/readmembers", limiter, async (req, res) => {
 
 app.get("/readmembersname", limiter, async (req, res) => {
   try {
-    const allMembers = await memberModel.find({}, "firstName lastName"); // Fetch 'firstName' and 'lastName' fields
+    const allMembers = await memberModel.find({}, "fullName"); // Fetch 'firstName' and 'lastName' fields
 
     const memberNames = allMembers.map((member) => ({
-      name: `${member.firstName} ${member.lastName}`, // Concatenate 'firstName' and 'lastName'
+      name: `${member.fullName}`, // Concatenate 'firstName' and 'lastName'
     }));
 
     res.status(200).json({
@@ -814,7 +825,7 @@ app.post("/createloan", limiter, async (req, res) => {
   const {
     loanId,
     loanProduct,
-    borrower,
+    memberName,
     memberNo,
     releaseDate,
     appliedAmount,
@@ -828,7 +839,7 @@ app.post("/createloan", limiter, async (req, res) => {
     const newLoan = new loansModel({
       loanId,
       loanProduct,
-      borrower,
+      memberName,
       memberNo,
       releaseDate,
       appliedAmount,
@@ -854,7 +865,7 @@ app.put("/updateloan/:id", limiter, async (req, res) => {
   const loanId = req.params.id;
   const {
     loanProduct,
-    borrower,
+    memberName,
     memberNo,
     releaseDate,
     appliedAmount,
@@ -869,7 +880,7 @@ app.put("/updateloan/:id", limiter, async (req, res) => {
       loanId,
       {
         loanProduct,
-        borrower,
+        memberName,
         memberNo,
         releaseDate,
         appliedAmount,
@@ -1738,7 +1749,7 @@ app.post("/loanreport", async (req, res) => {
       return {
         loanId: loan.loanId,
         loanProduct: loan.loanProduct,
-        borrower: loan.borrower,
+        memberName: loan.memberName,
         memberNo: loan.memberNo,
         releaseDate: loan.releaseDate,
         appliedAmount: loan.appliedAmount,
@@ -1758,7 +1769,7 @@ app.post("/loanreport", async (req, res) => {
 app.get("/loandue", async (req, res) => {
   try {
     // Fetching loans data
-    const loans = await loansModel.find({}, "loanId memberNo borrower");
+    const loans = await loansModel.find({}, "loanId memberNo memberName");
 
     // Fetching repayments data
     const repayments = await repaymentModel.find({}, "loanId dueAmount");
@@ -1775,7 +1786,7 @@ app.get("/loandue", async (req, res) => {
       return {
         loanId: loan.loanId,
         memberNo: loan.memberNo,
-        borrower: loan.borrower,
+        memberName: loan.memberName,
         totalDue: totalDue,
       };
     });
