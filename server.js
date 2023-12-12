@@ -433,6 +433,7 @@ app.post("/createbranch", limiter, async (req, res) => {
     password,
     contactphone,
     branchaddress,
+    userType,
   } = req.body;
 
   try {
@@ -443,6 +444,7 @@ app.post("/createbranch", limiter, async (req, res) => {
       password,
       contactphone,
       branchaddress,
+      userType,
     });
 
     await newUser.save();
