@@ -60,12 +60,22 @@ const userdetailsSchema = new mongoose.Schema(
 const memberSchema = new mongoose.Schema(
   {
     memberNo: { type: Number, required: true, unique: true },
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
     branchName: { type: String, required: true },
-    aadhar: { type: String, required: true },
-    pancard: { type: String, required: true },
+    fullName: { type: String, required: true },
+    photo: { type: String }, // This could be a URL or path to the image file
+    email: { type: String, required: true, unique: true },
+    fatherName: { type: String },
+    gender: { type: String, enum: ['Male', 'Female', 'Others'] },
+    maritalStatus: { type: String },
+    dateOfBirth: { type: Date },
+    currentAddress: { type: String },
+    permanentAddress: { type: String },
+    whatsAppNo: { type: Number },
+    idProof: { type: String }, // Aadhar, Passport, Electricity Bill, etc.
+    nomineeName: { type: String },
+    relationship: { type: String },
+    nomineeMobileNo: { type: Number },
+    nomineeDateOfBirth: { type: Date },
   },
   { collection: "members" }
 );
@@ -553,42 +563,76 @@ app.get("/getbranch/:id", async (req, res) => {
 // Define an endpoint to fetch branch names
 app.get("/branches/names", limiter, async (req, res) => {
   try {
-    const allBranches = await allusersModel.find({}, { branchName: 1, _id: 0 });
+    const managerBranches = await allusersModel.find(
+      { userType: 'manager' }, // Filter by userType 'manager'
+      { branchName: 1, _id: 0 }
+    );
 
-    const branchNames = allBranches.map((branch) => branch.branchName);
+    const branchNames = managerBranches.map((branch) => branch.branchName);
 
     res.status(200).json({
-      message: "All branch names retrieved successfully",
+      message: "Manager branch names retrieved successfully",
       data: branchNames,
     });
   } catch (error) {
-    console.error("Error retrieving branch names:", error);
-    res.status(500).json({ message: "Error retrieving branch names" });
+    console.error("Error retrieving manager branch names:", error);
+    res.status(500).json({ message: "Error retrieving manager branch names" });
   }
 });
 
-app.post("/createmember", limiter, async (req, res) => {
+app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
   const {
     memberNo,
-    firstName,
-    lastName,
+    fullName,
     email,
     branchName,
-    aadhar,
-    pancard,
-    accountType,
+    photo, // Assuming this is a URL or path to the image file
+    fatherName,
+    gender,
+    maritalStatus,
+    dateOfBirth,
+    currentAddress,
+    permanentAddress,
+    whatsAppNo,
+    idProof, // ID proof type (Aadhar, Passport, Electricity Bill, etc.)
+    nomineeName,
+    relationship,
+    nomineeMobileNo,
+    nomineeDateOfBirth,
   } = req.body;
+
+  let imageUrl = ""; // Initialize imageUrl variable
+
+  // Check if there is an uploaded image
+  if (req.file) {
+    const base64String = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const result = await cloudinary.uploader.upload(base64String, {
+      resource_type: "auto", // Specify the resource type if necessary
+    });
+
+    imageUrl = result.secure_url;
+  }
 
   try {
     const newMember = new memberModel({
       memberNo,
-      firstName,
-      lastName,
+      fullName,
       email,
       branchName,
-      aadhar,
-      pancard,
-      accountType,
+      photo,
+      fatherName,
+      gender,
+      maritalStatus,
+      dateOfBirth,
+      currentAddress,
+      permanentAddress,
+      whatsAppNo,
+      idProof,
+      nomineeName,
+      relationship,
+      nomineeMobileNo,
+      nomineeDateOfBirth,
     });
 
     await newMember.save();
@@ -602,31 +646,64 @@ app.post("/createmember", limiter, async (req, res) => {
   }
 });
 
-app.put("/updatemember/:id", limiter, async (req, res) => {
+app.put("/updatemember/:id", upload.single("image"), limiter, async (req, res) => {
   const memberId = req.params.id;
+
+  // Destructure the request body
   const {
     memberNo,
-    firstName,
-    lastName,
+    fullName,
     email,
     branchName,
-    aadhar,
-    pancard,
-    accountType,
+    photo,
+    fatherName,
+    gender,
+    maritalStatus,
+    dateOfBirth,
+    currentAddress,
+    permanentAddress,
+    whatsAppNo,
+    idProof,
+    nomineeName,
+    relationship,
+    nomineeMobileNo,
+    nomineeDateOfBirth,
   } = req.body;
+
+  let imageUrl = ""; // Initialize imageUrl variable
+
+  // Check if there is an uploaded image
+  if (req.file) {
+    const base64String = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const result = await cloudinary.uploader.upload(base64String, {
+      resource_type: "auto", // Specify the resource type if necessary
+    });
+
+    imageUrl = result.secure_url;
+  }
 
   try {
     const updatedMember = await memberModel.findByIdAndUpdate(
       memberId,
       {
         memberNo,
-        firstName,
-        lastName,
+        fullName,
         email,
         branchName,
-        aadhar,
-        pancard,
-        accountType,
+        photo,
+        fatherName,
+        gender,
+        maritalStatus,
+        dateOfBirth,
+        currentAddress,
+        permanentAddress,
+        whatsAppNo,
+        idProof,
+        nomineeName,
+        relationship,
+        nomineeMobileNo,
+        nomineeDateOfBirth,
       },
       { new: true }
     );
@@ -1404,6 +1481,36 @@ app.delete("/expenses/:id", async (req, res) => {
     res
       .status(400)
       .json({ message: "Error deleting expense", error: error.message });
+  }
+});
+
+// Handle multiple file uploads to Cloudinary
+app.post("/uploadmultiple", upload.array("images", 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    const promises = req.files.map(async (file) => {
+      const base64String = `data:${file.mimetype};base64,${file.buffer.toString(
+        "base64"
+      )}`;
+
+      const result = await cloudinary.uploader.upload(base64String, {
+        resource_type: "auto",
+      });
+
+      return result.secure_url;
+    });
+
+    const uploadedUrls = await Promise.all(promises);
+
+    res.status(200).json({ urls: uploadedUrls });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error uploading files to Cloudinary",
+      error: error.message,
+    });
   }
 });
 
