@@ -38,8 +38,22 @@ app.use(cors());
 //   dbName: "admindatabase",
 // });
 
+const commonDB = mongoose.createConnection(uri, { dbName: "commondatabase" });
 
-const commonDB = mongoose.createConnection(uri,{dbName:'commondatabase'});
+// Event handling for successful connection
+commonDB.on("connected", () => {
+  console.log("Connected to commonDB");
+});
+
+// Event handling for disconnection
+commonDB.on("disconnected", () => {
+  console.log("Disconnected from commonDB");
+});
+
+// Event handling for error
+commonDB.on("error", (err) => {
+  console.error("Connection error:", err);
+});
 
 const userdetailsSchema = new mongoose.Schema(
   {
@@ -240,6 +254,21 @@ loginDB = mongoose.createConnection(uri, {
   dbName: "logindatabase",
 });
 
+// Event handling for successful connection
+loginDB.on("connected", () => {
+  console.log("Connected to loginDB");
+});
+
+// Event handling for disconnection
+loginDB.on("disconnected", () => {
+  console.log("Disconnected from loginDB");
+});
+
+// Event handling for error
+loginDB.on("error", (err) => {
+  console.error("Connection error:", err);
+});
+
 const allusersModel = loginDB.model("allusers", userdetailsSchema);
 
 // // Multer configuration for handling file uploads
@@ -290,6 +319,26 @@ app.post("/all-login", limiter, async (req, res) => {
 
     if (user.password !== password) {
       return res.status(401).json({ message: "Invalid Password" });
+    }
+
+    if (user.userType === "admin") {
+      const newDBName = "admindatabase";
+      commonDB.close();
+      const commonDB = mongoose.createConnection(uri, { db: newDBName });
+      // Event handling for successful connection
+      commonDB.on("connected", () => {
+        console.log("Connected to commonDB(Admin)");
+      });
+
+      // Event handling for disconnection
+      commonDB.on("disconnected", () => {
+        console.log("Disconnected from commonDB(Admin)");
+      });
+
+      // Event handling for error
+      commonDB.on("error", (err) => {
+        console.error("(Admin)Connection error:", err);
+      });
     }
 
     // User authentication successful, create payload for JWT
@@ -2800,7 +2849,8 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     agent.email = email || agent.email;
     agent.mobile = mobile || agent.mobile;
     agent.nomineeName = nomineeName || agent.nomineeName;
-    agent.nomineeRelationship = nomineeRelationship || agent.nomineeRelationship;
+    agent.nomineeRelationship =
+      nomineeRelationship || agent.nomineeRelationship;
     agent.nomineeDob = nomineeDob || agent.nomineeDob;
     agent.nomineeMobile = nomineeMobile || agent.nomineeMobile;
     agent.password = password || agent.password;
