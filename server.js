@@ -275,6 +275,80 @@ const limiter = rateLimit({
   max: 1000, // limit each IP to 100 requests per windowMs
 });
 
+app.post("/all-login", limiter, async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await allusersModel.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.password !== password) {
+      return res.status(401).json({ message: "Invalid Password" });
+    }
+
+    let dbConnection;
+
+    if (user.userType === "admin") {
+      // Use the admin database
+      dbConnection = mongoose.createConnection(uri, {
+        dbName: "admindatabase",
+      });
+    } else if (user.userType === "manager") {
+      // Use the manager's specific database
+      const managerDbName = user._id.toString();
+      dbConnection = mongoose.createConnection(uri, {
+        dbName: managerDbName,
+      });
+    } else {
+      // Connect to other roles' databases if necessary
+      // Example: if user.userType === "agent"
+      // dbConnection = mongoose.createConnection(uri, {
+      //   dbName: "agentdatabase",
+      // });
+    }
+
+    dbConnection.on("error", console.error.bind(console, "MongoDB connection error:"));
+    dbConnection.once("open", async () => {
+      console.log(`Connected to user-specific database for ${user.userType}: ${dbConnection.name}`);
+
+      // After establishing the role-based database connection,
+      // create a separate connection for the login database
+
+      try {
+        const loginDB = await mongoose.createConnection(uri, {
+          dbName: "logindatabase",
+        });
+
+        loginDB.on("error", console.error.bind(console, "MongoDB connection error:"));
+        loginDB.once("open", () => {
+          console.log(`Connected to login-specific database: ${loginDB.name}`);
+          // Continue with user authentication and token generation
+          const payload = {
+            userId: user._id,
+            email: user.email,
+            username: user.firstName,
+            password: user.password,
+            role: user.userType,
+            // Add other necessary user information to the payload
+          };
+  
+          const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
+  
+          res.json({ message: "Login Success!", token });
+        });
+      } catch (error) {
+        console.error("Error connecting to login database:", error);
+        res.status(500).json({ message: "Error connecting to login database" });
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 // Create Function for User
 app.post("/create", limiter, async (req, res) => {
   const {
@@ -1545,6 +1619,7 @@ app.post("/uploadmultiple", upload.array("images", 2), async (req, res) => {
     });
   }
 });
+
 // Handle file upload to Cloudinary
 app.post("/upload", upload.single("image"), async (req, res) => {
   try {
@@ -2196,57 +2271,6 @@ app.get("/calculate-revenue", async (req, res) => {
   } catch (error) {
     console.error("Error retrieving Loan IDs:", error);
     res.status(500).json({ error: "Internal server error" });
-  }
-});
-
-app.post("/all-login", limiter, async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await allusersModel.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.password !== password) {
-      return res.status(401).json({ message: "Invalid Password" });
-    }
-
-    // if (user.userType === "manager") {
-    //   const userDbName = user._id.toString(); // Get the ObjectId as a string and use it as the database name
-
-    //   mongoose.connection.close(); // Close the default connection
-
-    //   // Connect to the user-specific database
-    //   mongoose.connect(uri, {
-    //     useNewUrlParser: true,
-    //     useUnifiedTopology: true,
-    //     dbName: userDbName,
-    //   });
-
-    //   const userDb = mongoose.connection;
-
-    //   userDb.on("error", console.error.bind(console, "MongoDB connection error:"));
-    //   userDb.once("open", () => {
-    //     console.log(`Connected to user-specific database: ${userDbName}`);
-    //   });
-    // }
-
-    const payload = {
-      userId: user._id,
-      email: user.email,
-      username: user.firstName,
-      password: user.password,
-      role: user.userType,
-      // Add other necessary user information to the payload
-    };
-
-    const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
-
-    res.json({ message: "Login Success!", token });
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
