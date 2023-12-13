@@ -34,9 +34,12 @@ const PORT = 3001;
 app.use(bodyParser.json());
 app.use(cors());
 
-mongoose.connect(uri, {
-  dbName: "admindatabase",
-});
+// mongoose.connect(uri, {
+//   dbName: "admindatabase",
+// });
+
+
+const commonDB = mongoose.createConnection(uri,{dbName:'commondatabase'});
 
 const userdetailsSchema = new mongoose.Schema(
   {
@@ -220,15 +223,15 @@ const revenueSchema = new mongoose.Schema(
   { collection: "Revenue" }
 );
 
-const memberModel = mongoose.model("members", memberSchema);
-const loansModel = mongoose.model("loans", loanSchema);
-const repaymentModel = mongoose.model("repayments", repaymentSchema);
-const AccountModel = mongoose.model("accounts", accountSchema);
-const TransactionsModel = mongoose.model("transactions", transactionSchema);
-const ExpenseModel = mongoose.model("expenses", expenseSchema);
-const categoryModel = mongoose.model("category", categorySchema);
-const Revenue = mongoose.model("Revenue", revenueSchema); // Assuming you have a Revenue model defined
-const RepaymentDetails = mongoose.model(
+const memberModel = commonDB.model("members", memberSchema);
+const loansModel = commonDB.model("loans", loanSchema);
+const repaymentModel = commonDB.model("repayments", repaymentSchema);
+const AccountModel = commonDB.model("accounts", accountSchema);
+const TransactionsModel = commonDB.model("transactions", transactionSchema);
+const ExpenseModel = commonDB.model("expenses", expenseSchema);
+const categoryModel = commonDB.model("category", categorySchema);
+const Revenue = commonDB.model("Revenue", revenueSchema); // Assuming you have a Revenue model defined
+const RepaymentDetails = commonDB.model(
   "RepaymentDetails",
   repaymentDetailsSchema
 );
@@ -289,59 +292,23 @@ app.post("/all-login", limiter, async (req, res) => {
       return res.status(401).json({ message: "Invalid Password" });
     }
 
-    let dbConnection;
-    let dbName;
+    // User authentication successful, create payload for JWT
+    const payload = {
+      userId: user._id,
+      email: user.email,
+      username: user.firstName, // Make sure to replace this with the correct user field for username
+      role: user.userType,
+      // Add other necessary user information to the payload
+    };
 
-    if (user.userType === "admin") {
-      // Set the admin database name
-      dbName = "admindatabase";
-    } else if (user.userType === "manager") {
-      // Set the manager's specific database name
-      dbName = `${user.userType}_${user._id.toString()}`;
-    } else if (user.userType === "agent") {
-      // Set the agent's specific database name
-      dbName = `${user.userType}_${user._id.toString()}`;
-    }
+    const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
 
-    dbConnection = mongoose.createConnection(uri, { dbName });
-
-    dbConnection.on("error", console.error.bind(console, "MongoDB connection error:"));
-    dbConnection.once("open", async () => {
-      console.log(`Connected to user-specific database for ${user.userType}: ${dbConnection.name}`);
-
-      // Create a separate connection for the login database
-      try {
-        const loginDB = await mongoose.createConnection(uri, {
-          dbName: "logindatabase",
-        });
-
-        loginDB.on("error", console.error.bind(console, "MongoDB connection error:"));
-        loginDB.once("open", () => {
-          console.log(`Connected to login-specific database: ${loginDB.name}`);
-          // Continue with user authentication and token generation
-          const payload = {
-            userId: user._id,
-            email: user.email,
-            username: user.firstName,
-            password: user.password,
-            role: user.userType,
-            // Add other necessary user information to the payload
-          };
-
-          const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
-
-          res.json({ message: "Login Success!", token });
-        });
-      } catch (error) {
-        console.error("Error connecting to login database:", error);
-        res.status(500).json({ message: "Error connecting to login database" });
-      }
-    });
+    res.json({ message: "Login Success!", token });
   } catch (error) {
+    console.error("Login Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
 
 // Create Function for User
 app.post("/create", limiter, async (req, res) => {
