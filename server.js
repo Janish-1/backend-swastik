@@ -290,33 +290,26 @@ app.post("/all-login", limiter, async (req, res) => {
     }
 
     let dbConnection;
+    let dbName;
 
     if (user.userType === "admin") {
-      // Use the admin database
-      dbConnection = mongoose.createConnection(uri, {
-        dbName: "admindatabase",
-      });
+      // Set the admin database name
+      dbName = "admindatabase";
     } else if (user.userType === "manager") {
-      // Use the manager's specific database
-      const managerDbName = user._id.toString();
-      dbConnection = mongoose.createConnection(uri, {
-        dbName: managerDbName,
-      });
-    } else {
-      // Connect to other roles' databases if necessary
-      // Example: if user.userType === "agent"
-      // dbConnection = mongoose.createConnection(uri, {
-      //   dbName: "agentdatabase",
-      // });
+      // Set the manager's specific database name
+      dbName = `${user.userType}_${user._id.toString()}`;
+    } else if (user.userType === "agent") {
+      // Set the agent's specific database name
+      dbName = `${user.userType}_${user._id.toString()}`;
     }
+
+    dbConnection = mongoose.createConnection(uri, { dbName });
 
     dbConnection.on("error", console.error.bind(console, "MongoDB connection error:"));
     dbConnection.once("open", async () => {
       console.log(`Connected to user-specific database for ${user.userType}: ${dbConnection.name}`);
 
-      // After establishing the role-based database connection,
-      // create a separate connection for the login database
-
+      // Create a separate connection for the login database
       try {
         const loginDB = await mongoose.createConnection(uri, {
           dbName: "logindatabase",
@@ -334,9 +327,9 @@ app.post("/all-login", limiter, async (req, res) => {
             role: user.userType,
             // Add other necessary user information to the payload
           };
-  
+
           const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
-  
+
           res.json({ message: "Login Success!", token });
         });
       } catch (error) {
@@ -348,6 +341,7 @@ app.post("/all-login", limiter, async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 
 // Create Function for User
 app.post("/create", limiter, async (req, res) => {
