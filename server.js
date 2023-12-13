@@ -35,7 +35,7 @@ app.use(bodyParser.json());
 app.use(cors());
 
 mongoose.connect(uri, {
-dbName: "admindatabase",
+  dbName: "admindatabase",
 });
 
 const userdetailsSchema = new mongoose.Schema(
@@ -67,7 +67,7 @@ const userdetailsSchema = new mongoose.Schema(
     nomineeRelationship: { type: String },
     nomineeDob: { type: String },
     nomineeMobile: { type: String },
-    photo: {type: String},
+    photo: { type: String },
   },
   { collection: "allusers" }
 );
@@ -80,7 +80,7 @@ const memberSchema = new mongoose.Schema(
     photo: { type: String }, // This could be a URL or path to the image file
     email: { type: String, required: true, unique: true },
     fatherName: { type: String },
-    gender: { type: String, enum: ['Male', 'Female', 'Others'] },
+    gender: { type: String, enum: ["Male", "Female", "Others"] },
     maritalStatus: { type: String },
     dateOfBirth: { type: Date },
     currentAddress: { type: String },
@@ -234,7 +234,7 @@ const RepaymentDetails = mongoose.model(
 );
 
 loginDB = mongoose.createConnection(uri, {
-dbName: "logindatabase",
+  dbName: "logindatabase",
 });
 
 const allusersModel = loginDB.model("allusers", userdetailsSchema);
@@ -480,7 +480,7 @@ app.post("/createbranch", limiter, async (req, res) => {
       password,
       contactphone,
       branchaddress,
-      userType: 'manager', // Set userType to 'manager'
+      userType: "manager", // Set userType to 'manager'
     });
 
     await newUser.save();
@@ -516,7 +516,7 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
         password,
         contactphone,
         branchaddress,
-        userType: 'manager', // Set userType to 'manager'
+        userType: "manager", // Set userType to 'manager'
       },
       { new: true }
     );
@@ -554,7 +554,7 @@ app.post("/deletebranch/:id", limiter, async (req, res) => {
 
 app.get("/readbranch", limiter, async (req, res) => {
   try {
-    const managerBranches = await allusersModel.find({ userType: 'manager' });
+    const managerBranches = await allusersModel.find({ userType: "manager" });
 
     res.status(200).json({
       message: "Manager branches retrieved successfully",
@@ -590,7 +590,7 @@ app.get("/getbranch/:id", async (req, res) => {
 app.get("/branches/names", limiter, async (req, res) => {
   try {
     const managerBranches = await allusersModel.find(
-      { userType: 'manager' }, // Filter by userType 'manager'
+      { userType: "manager" }, // Filter by userType 'manager'
       { branchName: 1, _id: 0 }
     );
 
@@ -631,7 +631,9 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
 
   // Check if there is an uploaded image
   if (req.file) {
-    const base64String = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${
+      req.file.mimetype
+    };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -672,80 +674,87 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
   }
 });
 
-app.put("/updatemember/:id", upload.single("image"), limiter, async (req, res) => {
-  const memberId = req.params.id;
+app.put(
+  "/updatemember/:id",
+  upload.single("image"),
+  limiter,
+  async (req, res) => {
+    const memberId = req.params.id;
 
-  // Destructure the request body
-  const {
-    memberNo,
-    fullName,
-    email,
-    branchName,
-    photo,
-    fatherName,
-    gender,
-    maritalStatus,
-    dateOfBirth,
-    currentAddress,
-    permanentAddress,
-    whatsAppNo,
-    idProof,
-    nomineeName,
-    relationship,
-    nomineeMobileNo,
-    nomineeDateOfBirth,
-  } = req.body;
+    // Destructure the request body
+    const {
+      memberNo,
+      fullName,
+      email,
+      branchName,
+      photo,
+      fatherName,
+      gender,
+      maritalStatus,
+      dateOfBirth,
+      currentAddress,
+      permanentAddress,
+      whatsAppNo,
+      idProof,
+      nomineeName,
+      relationship,
+      nomineeMobileNo,
+      nomineeDateOfBirth,
+    } = req.body;
 
-  let imageUrl = ""; // Initialize imageUrl variable
+    let imageUrl = ""; // Initialize imageUrl variable
 
-  // Check if there is an uploaded image
-  if (req.file) {
-    const base64String = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    // Check if there is an uploaded image
+    if (req.file) {
+      const base64String = `data:${
+        req.file.mimetype
+      };base64,${req.file.buffer.toString("base64")}`;
 
-    const result = await cloudinary.uploader.upload(base64String, {
-      resource_type: "auto", // Specify the resource type if necessary
-    });
+      const result = await cloudinary.uploader.upload(base64String, {
+        resource_type: "auto", // Specify the resource type if necessary
+      });
 
-    imageUrl = result.secure_url;
-  }
-
-  try {
-    const updatedMember = await memberModel.findByIdAndUpdate(
-      memberId,
-      {
-        memberNo,
-        fullName,
-        email,
-        branchName,
-        photo,
-        fatherName,
-        gender,
-        maritalStatus,
-        dateOfBirth,
-        currentAddress,
-        permanentAddress,
-        whatsAppNo,
-        idProof,
-        nomineeName,
-        relationship,
-        nomineeMobileNo,
-        nomineeDateOfBirth,
-      },
-      { new: true }
-    );
-
-    if (!updatedMember) {
-      return res.status(404).json({ message: "Member not found" });
+      imageUrl = result.secure_url;
     }
 
-    res
-      .status(200)
-      .json({ message: "Member updated successfully", data: updatedMember });
-  } catch (error) {
-    console.error("Error updating member:", error);
-    res.status(500).json({ message: "Error updating member" });
+    try {
+      const updatedMember = await memberModel.findByIdAndUpdate(
+        memberId,
+        {
+          memberNo,
+          fullName,
+          email,
+          branchName,
+          photo,
+          fatherName,
+          gender,
+          maritalStatus,
+          dateOfBirth,
+          currentAddress,
+          permanentAddress,
+          whatsAppNo,
+          idProof,
+          nomineeName,
+          relationship,
+          nomineeMobileNo,
+          nomineeDateOfBirth,
+        },
+        { new: true }
+      );
+
+      if (!updatedMember) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+
+      res
+        .status(200)
+        .json({ message: "Member updated successfully", data: updatedMember });
+    } catch (error) {
+      console.error("Error updating member:", error);
+      res.status(500).json({ message: "Error updating member" });
+    }
   }
-});
+);
 
 app.post("/deletemember/:id", limiter, async (req, res) => {
   const memberId = req.params.id;
@@ -1508,8 +1517,7 @@ app.delete("/expenses/:id", async (req, res) => {
   }
 });
 
-// Handle multiple file uploads to Cloudinary
-app.post("/uploadmultiple", upload.array("images", 10), async (req, res) => {
+app.post("/uploadmultiple", upload.array("images", 2), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "No files uploaded" });
@@ -1537,7 +1545,6 @@ app.post("/uploadmultiple", upload.array("images", 10), async (req, res) => {
     });
   }
 });
-
 // Handle file upload to Cloudinary
 app.post("/upload", upload.single("image"), async (req, res) => {
   try {
@@ -1602,7 +1609,7 @@ app.post("/users", async (req, res) => {
 // Get all users with userType as 'agent'
 app.get("/api/users", async (req, res) => {
   try {
-    const agents = await allusersModel.find({ userType: 'agent' });
+    const agents = await allusersModel.find({ userType: "agent" });
     res.status(200).json(agents);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2012,44 +2019,6 @@ app.get("/pendingLoans", async (req, res) => {
   }
 });
 
-app.get("/api/cleanOrphanedImages", async (req, res) => {
-  try {
-    // Retrieve all users with their associated image file names from the database
-    const users = await allusersModel.find({}, "image");
-
-    // Get the list of image file names from the database
-    const imageFileNames = users.map((user) => user.image).filter(Boolean);
-
-    // Get the list of image files in the 'uploads' folder
-    const uploadFolder = path.join(__dirname, "uploads"); // Replace 'uploads' with your actual folder name
-    const uploadedFiles = fs.readdirSync(uploadFolder);
-
-    // Find image files in the 'uploads' folder that don't have a corresponding user
-    const orphanedImages = uploadedFiles.filter(
-      (file) => !imageFileNames.includes(file)
-    );
-
-    // Process and delete orphaned image files
-    orphanedImages.forEach(async (fileName) => {
-      const filePath = path.join(uploadFolder, fileName);
-
-      // Delete the file from the folder
-      fs.unlink(filePath, async (err) => {
-        if (err) {
-          console.error(`Error deleting file: ${fileName}`, err);
-          // Handle deletion error if required
-        } else {
-          // console.log(`File ${fileName} deleted.`);
-        }
-      });
-    });
-
-    res.status(200).json({ message: "Orphaned images cleanup completed." });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 app.post("/getuseremailpassword", limiter, async (req, res) => {
   const { token } = req.body;
 
@@ -2345,6 +2314,21 @@ app.get("/all-users", async (req, res) => {
     // Retrieve all user details from the UserDetails model/collection
     const allUsers = await allusersModel.find();
     res.status(200).json(allUsers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Assuming allusersModel is your Mongoose model for user details
+app.get("/all-users/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    // Retrieve user details by ID from the UserDetails model/collection
+    const user = await allusersModel.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -2775,10 +2759,82 @@ app.post("/createagent", limiter, async (req, res) => {
 
     await newAgent.save();
 
-    res.status(200).json({ message: "Agent data saved to MongoDB", data: newAgent });
+    res
+      .status(200)
+      .json({ message: "Agent data saved to MongoDB", data: newAgent });
   } catch (error) {
     console.error("Error saving agent data:", error);
     res.status(500).json({ message: "Error saving agent data" });
+  }
+});
+
+app.put("/updateagent/:id", limiter, async (req, res) => {
+  const agentId = req.params.id;
+
+  try {
+    const agent = await allusersModel.findById(agentId);
+
+    if (!agent) {
+      return res.status(404).json({ message: "Agent not found" });
+    }
+
+    // Destructure the fields from the request body
+    const {
+      name,
+      qualification,
+      image,
+      photo,
+      fatherName,
+      maritalStatus,
+      dob,
+      age,
+      aadhar,
+      panCard,
+      address,
+      permanentAddress,
+      email,
+      mobile,
+      nomineeName,
+      nomineeRelationship,
+      nomineeDob,
+      nomineeMobile,
+      password,
+    } = req.body;
+
+    // Update agent object with new values
+    agent.name = name || agent.name;
+    agent.qualification = qualification || agent.qualification;
+    agent.fatherName = fatherName || agent.fatherName;
+    agent.maritalStatus = maritalStatus || agent.maritalStatus;
+    agent.dob = dob || agent.dob;
+    agent.age = age || agent.age;
+    agent.aadhar = aadhar || agent.aadhar;
+    agent.panCard = panCard || agent.panCard;
+    agent.address = address || agent.address;
+    agent.permanentAddress = permanentAddress || agent.permanentAddress;
+    agent.email = email || agent.email;
+    agent.mobile = mobile || agent.mobile;
+    agent.nomineeName = nomineeName || agent.nomineeName;
+    agent.nomineeRelationship = nomineeRelationship || agent.nomineeRelationship;
+    agent.nomineeDob = nomineeDob || agent.nomineeDob;
+    agent.nomineeMobile = nomineeMobile || agent.nomineeMobile;
+    agent.password = password || agent.password;
+
+    // Update image fields only if a new image is provided
+    if (image) {
+      agent.image = image;
+    }
+    if (photo) {
+      agent.photo = photo;
+    }
+
+    // Save the updated agent
+    await agent.save();
+
+    res.status(200).json({ message: "Agent data updated", data: agent });
+  } catch (error) {
+    console.error("Error updating agent data:", error);
+    res.status(500).json({ message: "Error updating agent data" });
   }
 });
 
