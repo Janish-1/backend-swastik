@@ -43,16 +43,31 @@ const userdetailsSchema = new mongoose.Schema(
     image: { type: String },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // Adding password field
+    password: { type: String, required: true },
     userType: {
       type: String,
-      enum: ["admin", "agent", "franchise", "manager"],
+      enum: ["user", "admin", "agent", "franchise", "manager"],
       default: "agent",
       required: true,
     },
     branchName: { type: String },
-    contactphone: { type: Number},
+    contactphone: { type: Number },
     branchaddress: { type: String },
+    qualification: { type: String },
+    fatherName: { type: String },
+    maritalStatus: { type: String },
+    dob: { type: String },
+    age: { type: String },
+    aadhar: { type: String },
+    panCard: { type: String },
+    address: { type: String },
+    permanentAddress: { type: String },
+    mobile: { type: String },
+    nomineeName: { type: String },
+    nomineeRelationship: { type: String },
+    nomineeDob: { type: String },
+    nomineeMobile: { type: String },
+    photo: {type: String},
   },
   { collection: "allusers" }
 );
@@ -984,8 +999,6 @@ app.post("/repayments", async (req, res) => {
       interest,
       latePenalties,
       totalAmount,
-      loanRepaymentStatus,
-      monthstatus,
     } = req.body;
 
     const newRepayment = new repaymentModel({
@@ -2710,6 +2723,62 @@ app.get("/repayments/:id/loanId", async (req, res) => {
       message: "Error retrieving loan ID from repayment record",
       error: error.message,
     });
+  }
+});
+
+app.post("/createagent", limiter, async (req, res) => {
+  const {
+    name,
+    qualification,
+    image, // Assuming this is a URL or path to the image file
+    photo, // Assuming this is another image URL or path
+    fatherName,
+    maritalStatus,
+    dob,
+    age,
+    aadhar,
+    panCard,
+    address,
+    permanentAddress,
+    email,
+    mobile,
+    nomineeName,
+    nomineeRelationship,
+    nomineeDob,
+    nomineeMobile,
+    password,
+  } = req.body;
+
+  try {
+    const newAgent = new allusersModel({
+      name,
+      qualification,
+      image,
+      photo,
+      fatherName,
+      maritalStatus,
+      dob,
+      age,
+      aadhar,
+      panCard,
+      address,
+      permanentAddress,
+      email,
+      mobile,
+      nomineeName,
+      nomineeRelationship,
+      nomineeDob,
+      nomineeMobile,
+      password,
+      userType: "agent",
+    });
+
+    await newAgent.save();
+
+    res.status(200).json({ message: "Agent data saved to MongoDB", data: newAgent });
+  } catch (error) {
+    console.error("Error saving agent data:", error);
+    res.status(500).json({ message: "Error saving agent data" });
   }
 });
 
