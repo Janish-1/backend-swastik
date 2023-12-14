@@ -34,61 +34,6 @@ const PORT = 3001;
 app.use(bodyParser.json());
 app.use(cors());
 
-// mongoose.connect(uri, {
-//   dbName: "admindatabase",
-// });
-
-const commonDB = mongoose.createConnection(uri, { dbName: "commondatabase" });
-
-// Event handling for successful connection
-commonDB.on("connected", () => {
-  console.log("Connected to commonDB");
-});
-
-// Event handling for disconnection
-commonDB.on("disconnected", () => {
-  console.log("Disconnected from commonDB");
-});
-
-// Event handling for error
-commonDB.on("error", (err) => {
-  console.error("Connection error:", err);
-});
-
-const userdetailsSchema = new mongoose.Schema(
-  {
-    image: { type: String },
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    userType: {
-      type: String,
-      enum: ["user", "admin", "agent", "franchise", "manager"],
-      default: "agent",
-      required: true,
-    },
-    branchName: { type: String },
-    contactphone: { type: Number },
-    branchaddress: { type: String },
-    qualification: { type: String },
-    fatherName: { type: String },
-    maritalStatus: { type: String },
-    dob: { type: String },
-    age: { type: String },
-    aadhar: { type: String },
-    panCard: { type: String },
-    address: { type: String },
-    permanentAddress: { type: String },
-    mobile: { type: String },
-    nomineeName: { type: String },
-    nomineeRelationship: { type: String },
-    nomineeDob: { type: String },
-    nomineeMobile: { type: String },
-    photo: { type: String },
-  },
-  { collection: "allusers" }
-);
-
 const memberSchema = new mongoose.Schema(
   {
     memberNo: { type: Number, required: true, unique: true },
@@ -237,17 +182,72 @@ const revenueSchema = new mongoose.Schema(
   { collection: "Revenue" }
 );
 
-const memberModel = commonDB.model("members", memberSchema);
-const loansModel = commonDB.model("loans", loanSchema);
-const repaymentModel = commonDB.model("repayments", repaymentSchema);
-const AccountModel = commonDB.model("accounts", accountSchema);
-const TransactionsModel = commonDB.model("transactions", transactionSchema);
-const ExpenseModel = commonDB.model("expenses", expenseSchema);
-const categoryModel = commonDB.model("category", categorySchema);
-const Revenue = commonDB.model("Revenue", revenueSchema); // Assuming you have a Revenue model defined
-const RepaymentDetails = commonDB.model(
+const memberModel = mongoose.model("members", memberSchema);
+const loansModel = mongoose.model("loans", loanSchema);
+const repaymentModel = mongoose.model("repayments", repaymentSchema);
+const AccountModel = mongoose.model("accounts", accountSchema);
+const TransactionsModel = mongoose.model("transactions", transactionSchema);
+const ExpenseModel = mongoose.model("expenses", expenseSchema);
+const categoryModel = mongoose.model("category", categorySchema);
+const Revenue = mongoose.model("Revenue", revenueSchema); // Assuming you have a Revenue model defined
+const RepaymentDetails = mongoose.model(
   "RepaymentDetails",
   repaymentDetailsSchema
+);
+
+mongoose.connect(uri, {
+  dbName: "commondatabase",
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// Event handling for successful connection
+mongoose.connection.on("connected", () => {
+  console.log("Connected to MongoDB(Common)");
+});
+
+// Event handling for disconnection
+mongoose.connection.on("disconnected", () => {
+  console.log("Disconnected from MongoDB(Common)");
+});
+
+// Event handling for error
+mongoose.connection.on("error", (err) => {
+  console.error("Connection error:", err);
+});
+
+const userdetailsSchema = new mongoose.Schema(
+  {
+    image: { type: String },
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    userType: {
+      type: String,
+      enum: ["user", "admin", "agent", "franchise", "manager"],
+      default: "agent",
+      required: true,
+    },
+    branchName: { type: String },
+    contactphone: { type: Number },
+    branchaddress: { type: String },
+    qualification: { type: String },
+    fatherName: { type: String },
+    maritalStatus: { type: String },
+    dob: { type: String },
+    age: { type: String },
+    aadhar: { type: String },
+    panCard: { type: String },
+    address: { type: String },
+    permanentAddress: { type: String },
+    mobile: { type: String },
+    nomineeName: { type: String },
+    nomineeRelationship: { type: String },
+    nomineeDob: { type: String },
+    nomineeMobile: { type: String },
+    photo: { type: String },
+  },
+  { collection: "allusers" }
 );
 
 loginDB = mongoose.createConnection(uri, {
@@ -321,26 +321,6 @@ app.post("/all-login", limiter, async (req, res) => {
       return res.status(401).json({ message: "Invalid Password" });
     }
 
-    if (user.userType === "admin") {
-      const newDBName = "admindatabase";
-      commonDB.close();
-      const commonDB = mongoose.createConnection(uri, { db: newDBName });
-      // Event handling for successful connection
-      commonDB.on("connected", () => {
-        console.log("Connected to commonDB(Admin)");
-      });
-
-      // Event handling for disconnection
-      commonDB.on("disconnected", () => {
-        console.log("Disconnected from commonDB(Admin)");
-      });
-
-      // Event handling for error
-      commonDB.on("error", (err) => {
-        console.error("(Admin)Connection error:", err);
-      });
-    }
-
     // User authentication successful, create payload for JWT
     const payload = {
       userId: user._id,
@@ -349,6 +329,31 @@ app.post("/all-login", limiter, async (req, res) => {
       role: user.userType,
       // Add other necessary user information to the payload
     };
+
+    // Check if the user is an admin, if so, set the global variable
+    if (user.userType === "admin") {
+      mongoose.disconnect();
+      mongoose.connect(uri, {
+        dbName: "admindatabase",
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      });
+      // Event handling for successful connection
+      mongoose.connection.on("connected", () => {
+        console.log("Connected to MongoDB(Admin)");
+      });
+      // Event handling for disconnection
+      mongoose.connection.on("disconnected", () => {
+        console.log("Disconnected from MongoDB(Admin)");
+      });
+
+      // Event handling for error
+      mongoose.connection.on("error", (err) => {
+        console.error("Connection error:", err);
+      });
+    } else {
+      // For other user types, set a different database type if needed
+    }
 
     const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
 
