@@ -207,7 +207,7 @@ const RepaymentDetails = mongoose.model(
 const walletModel = mongoose.model("wallet", walletschema);
 
 mongoose.connect(uri, {
-  dbName: "admindatabase", // Change to common database when backend done
+  dbName: "commondatabase",
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
