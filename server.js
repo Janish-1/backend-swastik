@@ -53,6 +53,8 @@ const memberSchema = new mongoose.Schema(
     relationship: { type: String },
     nomineeMobileNo: { type: Number },
     nomineeDateOfBirth: { type: Date },
+    walletId: { type: Number, required: true, unique: true },
+    numberOfShares: { type: Number },
   },
   { collection: "members" }
 );
@@ -182,6 +184,14 @@ const revenueSchema = new mongoose.Schema(
   { collection: "Revenue" }
 );
 
+const walletschema = mongoose.Schema(
+  {
+    walletId: { type: Number, required: true, unique: true },
+    numberOfShares: { type: Number, required: true },
+  },
+  { collection: "Wallet" }
+);
+
 const memberModel = mongoose.model("members", memberSchema);
 const loansModel = mongoose.model("loans", loanSchema);
 const repaymentModel = mongoose.model("repayments", repaymentSchema);
@@ -189,14 +199,15 @@ const AccountModel = mongoose.model("accounts", accountSchema);
 const TransactionsModel = mongoose.model("transactions", transactionSchema);
 const ExpenseModel = mongoose.model("expenses", expenseSchema);
 const categoryModel = mongoose.model("category", categorySchema);
-const Revenue = mongoose.model("Revenue", revenueSchema); // Assuming you have a Revenue model defined
+const Revenue = mongoose.model("Revenue", revenueSchema);
 const RepaymentDetails = mongoose.model(
   "RepaymentDetails",
   repaymentDetailsSchema
 );
+const walletModel = mongoose.model("wallet", walletschema);
 
 mongoose.connect(uri, {
-  dbName: "commondatabase",
+  dbName: "admindatabase", // Change to common database when backend done
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -782,6 +793,8 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
     relationship,
     nomineeMobileNo,
     nomineeDateOfBirth,
+    walletId,
+    numberOfShares,
   } = req.body;
 
   let imageUrl = ""; // Initialize imageUrl variable
@@ -818,13 +831,24 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
       relationship,
       nomineeMobileNo,
       nomineeDateOfBirth,
+      walletId,
+      numberOfShares,
     });
+
+    // Check if walletid and shares are provided in the request body
+    if (walletId === undefined || numberOfShares === undefined) {
+      return res
+        .status(400)
+        .json({ error: "Wallet ID and shares are required" });
+    }
+
+    // Create a wallet using the provided walletid and shares
+    const response = await walletModel.create({ walletId, numberOfShares });
+    console.log(response);
 
     await newMember.save();
 
-    res
-      .status(200)
-      .json({ message: "Member data saved to MongoDB", data: newMember });
+    res.status(200).json({ message: "Member data saved to MongoDB", data: newMember });
   } catch (error) {
     console.error("Error saving member data:", error);
     res.status(500).json({ message: "Error saving member data" });
@@ -1767,7 +1791,7 @@ app.post("/users", async (req, res) => {
 // Get all users with userType as 'agent'
 app.get("/api/users", async (req, res) => {
   try {
-    const agents = await allusersModel.find({ userType: "agent" });
+    const agents = await allusersModel.find();
     res.status(200).json(agents);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1890,7 +1914,6 @@ app.get("/accountstatement", async (req, res) => {
   }
 });
 
-// Endpoint to fetch data based on filters sent in the request body
 app.post("/loanreport", async (req, res) => {
   try {
     const { startDate, endDate, loanType, memberNo } = req.body;
@@ -1915,28 +1938,22 @@ app.post("/loanreport", async (req, res) => {
     // Filtering loans data based on query
     const loans = await loansModel.find(query);
 
-    // Fetching corresponding repayment data for filtered loans
-    const loanIds = loans.map((loan) => loan.loanId);
-    const repayments = await repaymentModel.find({ loanId: { $in: loanIds } });
-
-    // Merging repayments data into loans data based on loanId
-    const mergedData = loans.map((loan) => {
-      const correspondingRepayment = repayments.find(
-        (repayment) => repayment.loanId === loan.loanId
-      );
-      return {
-        loanId: loan.loanId,
-        loanProduct: loan.loanProduct,
-        memberName: loan.memberName,
-        memberNo: loan.memberNo,
-        releaseDate: loan.releaseDate,
-        appliedAmount: loan.appliedAmount,
-        status: loan.status,
-        dueAmount: correspondingRepayment
-          ? correspondingRepayment.dueAmount
-          : null,
-      };
-    });
+    // Fetching dueAmount for each loanId
+    const mergedData = await Promise.all(
+      loans.map(async (loan) => {
+        const repayment = await repaymentModel.findOne({ loanId: loan.loanId });
+        return {
+          loanId: loan.loanId,
+          loanProduct: loan.loanProduct,
+          memberName: loan.memberName,
+          memberNo: loan.memberNo,
+          releaseDate: loan.releaseDate,
+          appliedAmount: loan.appliedAmount,
+          status: loan.status,
+          dueAmount: repayment ? repayment.dueAmount : null,
+        };
+      })
+    );
 
     res.status(200).json(mergedData);
   } catch (error) {
@@ -1949,16 +1966,16 @@ app.get("/loandue", async (req, res) => {
     // Fetching loans data
     const loans = await loansModel.find({}, "loanId memberNo memberName");
 
-    // Fetching repayments data
-    const repayments = await repaymentModel.find({}, "loanId dueAmount");
+    // Fetching repayments data with specific fields
+    const repayments = await repaymentModel.find({}, "loanId totalAmount fieldName1 fieldName2");
 
     // Processing the data to calculate total due for each loan
     const processedData = loans.map((loan) => {
       const loanRepayments = repayments.filter(
-        (repayment) => repayment.loanId === loan.loanId
+        (repayment) => repayment.loanId.toString() === loan.loanId.toString()
       );
       const totalDue = loanRepayments.reduce(
-        (total, repayment) => total + repayment.dueAmount,
+        (total, repayment) => total + repayment.totalAmount,
         0
       );
       return {
@@ -2260,6 +2277,27 @@ app.get("/randomgenAccountId", limiter, async (req, res) => {
   res.json({ uniqueid });
 });
 
+app.get("/randomgenWalletId", limiter, async (req, res) => {
+  let isUniqueWalletIdFound = false;
+  let uniqueWalletId;
+
+  while (!isUniqueWalletIdFound) {
+    const random = Math.floor(Math.random() * 90000 + 10000); // Generate a random 5-digit number
+    uniqueWalletId = random;
+
+    // Check if the generated wallet ID already exists in the database
+    const existingWallet = await walletModel.findOne({
+      walletid: uniqueWalletId,
+    });
+
+    if (!existingWallet) {
+      isUniqueWalletIdFound = true;
+    }
+  }
+
+  res.json({ uniqueWalletId });
+});
+
 // Express route to get available balance, current balance, and associated loan ID(s) for an account
 app.get("/accountDetails/:accountNumber", async (req, res) => {
   try {
@@ -2280,9 +2318,9 @@ app.get("/accountDetails/:accountNumber", async (req, res) => {
       }
     });
 
-    const associatedLoans = await repaymentModel
-      .find({ loanId: accountNumber })
-      .distinct("loanId");
+    // Modify the query to fetch associated loan IDs based on the accountNumber
+    const associatedLoans = await loansModel
+      .find({ account: accountNumber }).distinct('loanId') // Assuming 'accountNumber' is the correct field in your repaymentModel
 
     return res.status(200).json({
       accountNumber: account.accountNumber,
@@ -2299,60 +2337,63 @@ app.get("/calculate-revenue", async (req, res) => {
   try {
     const { year, month } = req.query;
 
-    // Check if both year and month are provided in the query
-    if (!year || !month) {
+    // Check if year is provided in the query
+    if (!year) {
       return res.status(400).json({
-        error: "Please provide year and month in the query parameters.",
+        error: "Please provide the year in the query parameters.",
       });
     }
 
-    const startDate = new Date(year, month - 1, 1); // Month in JavaScript Date starts from 0 (January)
-    const endDate = new Date(year, month, 0); // To get the last day of the month
-
-    // Find all active loans within the specified month and year using loansModel
-    const activeLoans = await loansModel
-      .find({
-        $or: [
-          {
-            $and: [
-              { releaseDate: { $lte: endDate } },
-              { endDate: { $gte: startDate } },
-            ],
-          },
-          {
-            $and: [
-              { releaseDate: { $gte: startDate } },
-              { endDate: { $exists: false } },
-            ],
-          },
-        ],
-      })
-      .select("loanId"); // Selecting only the loanId field
-
-    // Extract Loan IDs from active loans
-    const loanIds = activeLoans.map((loan) => loan.loanId);
-
     let totalRevenue = 0;
 
-    // Fetch repayments for each loan and calculate revenue
-    for (const loanId of loanIds) {
-      const repayments = await repaymentModel.find({ loanId });
-      for (const repayment of repayments) {
-        const { dueAmount, interest } = repayment;
-        totalRevenue += dueAmount * (interest / 100);
+    // Calculate total revenue for each month in the provided year
+    for (let month = 1; month <= 12; month++) {
+      const startDate = new Date(year, month - 1, 1); // Month in JavaScript Date starts from 0 (January)
+      const endDate = new Date(year, month, 0); // To get the last day of the month
+
+      // Find all active loans within the specified month and year using loansModel
+      const activeLoans = await loansModel
+        .find({
+          $or: [
+            {
+              $and: [
+                { releaseDate: { $lte: endDate } },
+                { endDate: { $gte: startDate } },
+              ],
+            },
+            {
+              $and: [
+                { releaseDate: { $gte: startDate } },
+                { endDate: { $exists: false } },
+              ],
+            },
+          ],
+        })
+        .select("loanId"); // Selecting only the loanId field
+
+      // Extract Loan IDs from active loans
+      const loanIds = activeLoans.map((loan) => loan.loanId);
+
+      // Fetch repayments for each loan and calculate revenue
+      for (const loanId of loanIds) {
+        const repayments = await repaymentModel.find({ loanId });
+        for (const repayment of repayments) {
+          const { dueAmount, interest } = repayment;
+          totalRevenue += dueAmount * (interest / 100);
+        }
       }
     }
 
-    // Update or insert the calculated totalRevenue for the given month and year
-    const filter = { year, month };
-    const update = { year, month, totalRevenue };
+    // Update or insert the calculated totalRevenue for the given year
+    const filter = { year };
+    const update = { year, totalRevenue };
     const options = { upsert: true, new: true };
 
     await Revenue.findOneAndUpdate(filter, update, options);
 
     res.json({ totalRevenue });
   } catch (error) {
-    console.error("Error retrieving Loan IDs:", error);
+    console.error("Error calculating revenue:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2943,6 +2984,66 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
   } catch (error) {
     console.error("Error updating agent data:", error);
     res.status(500).json({ message: "Error updating agent data" });
+  }
+});
+
+// CREATE
+app.post("/wallet", async (req, res) => {
+  try {
+    const { walletid, shares } = req.body;
+    const createdWallet = await walletModel.create({ walletid, shares });
+    res.status(201).json(createdWallet);
+  } catch (error) {
+    res.status(500).json({ error: "Error creating wallet" });
+  }
+});
+
+// READ
+app.get("/wallet/:walletId", async (req, res) => {
+  try {
+    const walletId = req.params.walletId;
+    const wallet = await walletModel.findOne({ walletid: walletId });
+    if (!wallet) {
+      return res.status(404).json({ error: "Wallet not found" });
+    }
+    res.json(wallet);
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching wallet" });
+  }
+});
+
+// UPDATE
+app.put("/wallet/:walletId", async (req, res) => {
+  try {
+    const walletId = req.params.walletId;
+    const { shares } = req.body;
+    const updatedWallet = await walletModel.findOneAndUpdate(
+      { walletid: walletId },
+      { $set: { shares } },
+      { new: true }
+    );
+    if (!updatedWallet) {
+      return res.status(404).json({ error: "Wallet not found" });
+    }
+    res.json(updatedWallet);
+  } catch (error) {
+    res.status(500).json({ error: "Error updating wallet shares" });
+  }
+});
+
+// DELETE
+app.delete("/wallet/:walletId", async (req, res) => {
+  try {
+    const walletId = req.params.walletId;
+    const deletedWallet = await walletModel.findOneAndDelete({
+      walletid: walletId,
+    });
+    if (!deletedWallet) {
+      return res.status(404).json({ error: "Wallet not found" });
+    }
+    res.json(deletedWallet);
+  } catch (error) {
+    res.status(500).json({ error: "Error deleting wallet" });
   }
 });
 
