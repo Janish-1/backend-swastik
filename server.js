@@ -332,29 +332,97 @@ app.post("/all-login", limiter, async (req, res) => {
 
     // Check if the user is an admin, if so, set the global variable
     if (user.userType === "admin") {
-      mongoose.disconnect();
-      mongoose.connect(uri, {
-        dbName: "admindatabase",
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      });
-      // Event handling for successful connection
-      mongoose.connection.on("connected", () => {
-        console.log("Connected to MongoDB(Admin)");
-      });
-      // Event handling for disconnection
-      mongoose.connection.on("disconnected", () => {
-        console.log("Disconnected from MongoDB(Admin)");
-      });
+      mongoose.connection
+        .close()
+        .then(() => {
+          return mongoose.connect(uri, {
+            dbName: "admindatabase",
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+          });
+        })
+        .then(() => {
+          // Event handling for successful connection
+          mongoose.connection.on("connected", () => {
+            console.log("Connected to MongoDB(Admin)");
+          });
 
-      // Event handling for error
-      mongoose.connection.on("error", (err) => {
-        console.error("Connection error:", err);
-      });
+          // Event handling for disconnection
+          mongoose.connection.on("disconnected", () => {
+            console.log("Disconnected from MongoDB(Admin)");
+          });
+
+          // Event handling for error
+          mongoose.connection.on("error", (err) => {
+            console.error("Connection error:", err);
+          });
+        })
+        .catch((err) => {
+          console.error("Error:", err);
+        });
+    } else if (user.userType === "manager") {
+      dbName = `manager_${user._id.toString()}`; // Prefix with "manager_"
+      mongoose.connection
+        .close()
+        .then(() => {
+          return mongoose.connect(uri, {
+            dbName,
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+          });
+        })
+        .then(() => {
+          // Event handling for successful connection
+          mongoose.connection.on("connected", () => {
+            console.log("Connected to MongoDB(Manager)");
+          });
+
+          // Event handling for disconnection
+          mongoose.connection.on("disconnected", () => {
+            console.log("Disconnected from MongoDB(Manger)");
+          });
+
+          // Event handling for error
+          mongoose.connection.on("error", (err) => {
+            console.error("Connection error:", err);
+          });
+        })
+        .catch((err) => {
+          console.error("Error:", err);
+        });
+    } else if (user.userType === "agent") {
+      dbName = `agent_${user._id.toString()}`; // Prefix with "manager_"
+      mongoose.connection
+        .close()
+        .then(() => {
+          return mongoose.connect(uri, {
+            dbName,
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+          });
+        })
+        .then(() => {
+          // Event handling for successful connection
+          mongoose.connection.on("connected", () => {
+            console.log("Connected to MongoDB(agent)");
+          });
+
+          // Event handling for disconnection
+          mongoose.connection.on("disconnected", () => {
+            console.log("Disconnected from MongoDB(agent)");
+          });
+
+          // Event handling for error
+          mongoose.connection.on("error", (err) => {
+            console.error("Connection error:", err);
+          });
+        })
+        .catch((err) => {
+          console.error("Error:", err);
+        });
     } else {
-      // For other user types, set a different database type if needed
+      console.error("Invalid Role");
     }
-
     const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
 
     res.json({ message: "Login Success!", token });
