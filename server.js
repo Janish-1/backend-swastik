@@ -1142,6 +1142,24 @@ app.get("/loans", limiter, async (req, res) => {
   }
 });
 
+// GET endpoint to fetch loans by member number
+app.get("/loansbymember/:memberNo", limiter, async (req, res) => {
+  try {
+    const memberNo = req.params.memberNo;
+
+    // Find loans based on the provided member number
+    const loans = await loansModel.find({ memberNo });
+
+    res.status(200).json({
+      message: "Loans retrieved successfully for the member",
+      data: loans,
+    });
+  } catch (error) {
+    console.error("Error retrieving loans:", error);
+    res.status(500).json({ message: "Error retrieving loans" });
+  }
+});
+
 // GET endpoint to fetch a specific loan by its ID
 app.get("/loans/:id", limiter, async (req, res) => {
   const loanId = req.params.id;
@@ -1556,6 +1574,33 @@ app.get("/transactions", async (req, res) => {
     res.status(200).json({
       message: "All transactions retrieved successfully",
       data: allTransactions,
+    });
+  } catch (error) {
+    console.error("Error retrieving transactions:", error);
+    res.status(500).json({ message: "Error retrieving transactions" });
+  }
+});
+
+// GET endpoint to fetch transactions by member ID
+app.get("/transactionsbymember/:id", async (req, res) => {
+  try {
+    const memberId = req.params.id;
+
+    // Find the member using the provided ID
+    const member = await memberModel.findById(memberId);
+    if (!member) {
+      return res.status(404).json({ message: "Member not found" });
+    }
+
+    // Retrieve the member number from the found member
+    const memb1 = member.memberNo;
+
+    // Fetch transactions by member number
+    const transactions = await TransactionsModel.find({ member: memb1 });
+
+    res.status(200).json({
+      message: "Transactions retrieved successfully for the member",
+      data: transactions,
     });
   } catch (error) {
     console.error("Error retrieving transactions:", error);
@@ -2327,6 +2372,49 @@ app.get("/accountDetails/:accountNumber", async (req, res) => {
       availableBalance: currentBalance,
       currentBalance: account.currentBalance,
       associatedLoanIds: associatedLoans,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+app.get("/memberAccountDetails/:id", async (req, res) => {
+  try {
+    const memberId = req.params.id;
+
+    const member = await memberModel.findById(memberId);
+    if (!member) {
+      return res.status(404).json({ message: "Member not found" });
+    }
+
+    const memberNo = member.memberNo;
+
+    const account = await AccountModel.findOne({ memberNo });
+    if (!account) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    const accountNumber = account.accountNumber;
+
+    const transactions = await TransactionsModel.find({ accountNumber });
+    let currentBalance = parseFloat(account.openingBalance);
+
+    transactions.forEach((transaction) => {
+      if (transaction.debitOrCredit === "Credit") {
+        currentBalance += parseFloat(transaction.transactionAmount);
+      } else {
+        currentBalance -= parseFloat(transaction.transactionAmount);
+      }
+    });
+
+    // Fetch associated loan IDs based on the accountNumber
+    const associatedLoans = await loansModel.find({ account: accountNumber }).distinct('loanId');
+
+    return res.status(200).json({
+      accountNumber: account.accountNumber,
+      availableBalance: parseFloat(currentBalance.toFixed(2)), // Rounding balance
+      currentBalance: parseFloat(account.currentBalance),
+      associatedLoanIds: associatedLoans.join(', '),
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
