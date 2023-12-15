@@ -207,7 +207,7 @@ const RepaymentDetails = mongoose.model(
 const walletModel = mongoose.model("wallet", walletschema);
 
 mongoose.connect(uri, {
-  dbName: "commondatabase",
+  dbName: "admindatabase",
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -848,27 +848,47 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
 
     await newMember.save();
 
-    res.status(200).json({ message: "Member data saved to MongoDB", data: newMember });
+    res
+      .status(200)
+      .json({ message: "Member data saved to MongoDB", data: newMember });
   } catch (error) {
     console.error("Error saving member data:", error);
     res.status(500).json({ message: "Error saving member data" });
   }
 });
 
+// Route for uploading images to Cloudinary and getting the URL in response
+app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const base64String = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+
+    const result = await cloudinary.uploader.upload(base64String, {
+      resource_type: "auto", // Specify the resource type if necessary
+    });
+
+    res.status(200).json({ url: result.secure_url });
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    res.status(500).json({ message: "Error uploading image" });
+  }
+});
+
+// Route for updating a member's details and images using uploadmultiple endpoint
 app.put(
   "/updatemember/:id",
-  upload.single("image"),
-  limiter,
   async (req, res) => {
     const memberId = req.params.id;
 
-    // Destructure the request body
+    // Destructure the request body containing member details
     const {
       memberNo,
       fullName,
       email,
       branchName,
-      photo,
       fatherName,
       gender,
       maritalStatus,
@@ -876,29 +896,61 @@ app.put(
       currentAddress,
       permanentAddress,
       whatsAppNo,
-      idProof,
       nomineeName,
       relationship,
       nomineeMobileNo,
       nomineeDateOfBirth,
+      walletId,
+      numberOfShares,
+      photo,
+      idProof,
     } = req.body;
 
-    let imageUrl = ""; // Initialize imageUrl variable
-
-    // Check if there is an uploaded image
-    if (req.file) {
-      const base64String = `data:${
-        req.file.mimetype
-      };base64,${req.file.buffer.toString("base64")}`;
-
-      const result = await cloudinary.uploader.upload(base64String, {
-        resource_type: "auto", // Specify the resource type if necessary
-      });
-
-      imageUrl = result.secure_url;
-    }
-
     try {
+      let photoUrl = photo || '';
+      let idProofUrl = idProof || '';
+
+      // Check if photo file is uploaded
+      if (req.files && req.files["photo"] && req.files["photo"][0]) {
+        const formDataWithImages = new FormData();
+        formDataWithImages.append("imageone", req.files["photo"][0].buffer, {
+          filename: req.files["photo"][0].originalname,
+        });
+
+        const responseUpload = await axios.post(
+          `${API_BASE_URL}/uploadimage`,
+          formDataWithImages,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        photoUrl = responseUpload.data.urls[0];
+      }
+
+      // Check if idProof file is uploaded
+      if (req.files && req.files["idProof"] && req.files["idProof"][0]) {
+        const formDataWithImages = new FormData();
+        formDataWithImages.append("imageone", req.files["idProof"][0].buffer, {
+          filename: req.files["idProof"][0].originalname,
+        });
+
+        const responseUpload = await axios.post(
+          `${API_BASE_URL}/uploadimage`,
+          formDataWithImages,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        idProofUrl = responseUpload.data.urls[0];
+      }
+
+      // Find and update member details in the database
       const updatedMember = await memberModel.findByIdAndUpdate(
         memberId,
         {
@@ -906,7 +958,6 @@ app.put(
           fullName,
           email,
           branchName,
-          photo,
           fatherName,
           gender,
           maritalStatus,
@@ -914,11 +965,14 @@ app.put(
           currentAddress,
           permanentAddress,
           whatsAppNo,
-          idProof,
           nomineeName,
           relationship,
           nomineeMobileNo,
           nomineeDateOfBirth,
+          walletId,
+          numberOfShares,
+          photo: photoUrl,
+          idProof: idProofUrl,
         },
         { new: true }
       );
@@ -2012,7 +2066,10 @@ app.get("/loandue", async (req, res) => {
     const loans = await loansModel.find({}, "loanId memberNo memberName");
 
     // Fetching repayments data with specific fields
-    const repayments = await repaymentModel.find({}, "loanId totalAmount fieldName1 fieldName2");
+    const repayments = await repaymentModel.find(
+      {},
+      "loanId totalAmount fieldName1 fieldName2"
+    );
 
     // Processing the data to calculate total due for each loan
     const processedData = loans.map((loan) => {
@@ -2365,7 +2422,8 @@ app.get("/accountDetails/:accountNumber", async (req, res) => {
 
     // Modify the query to fetch associated loan IDs based on the accountNumber
     const associatedLoans = await loansModel
-      .find({ account: accountNumber }).distinct('loanId') // Assuming 'accountNumber' is the correct field in your repaymentModel
+      .find({ account: accountNumber })
+      .distinct("loanId"); // Assuming 'accountNumber' is the correct field in your repaymentModel
 
     return res.status(200).json({
       accountNumber: account.accountNumber,
@@ -2408,13 +2466,15 @@ app.get("/memberAccountDetails/:id", async (req, res) => {
     });
 
     // Fetch associated loan IDs based on the accountNumber
-    const associatedLoans = await loansModel.find({ account: accountNumber }).distinct('loanId');
+    const associatedLoans = await loansModel
+      .find({ account: accountNumber })
+      .distinct("loanId");
 
     return res.status(200).json({
       accountNumber: account.accountNumber,
       availableBalance: parseFloat(currentBalance.toFixed(2)), // Rounding balance
       currentBalance: parseFloat(account.currentBalance),
-      associatedLoanIds: associatedLoans.join(', '),
+      associatedLoanIds: associatedLoans.join(", "),
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -3004,6 +3064,7 @@ app.post("/createagent", limiter, async (req, res) => {
   }
 });
 
+// Route for updating an agent's details and images using uploadimage endpoint
 app.put("/updateagent/:id", limiter, async (req, res) => {
   const agentId = req.params.id;
 
@@ -3018,8 +3079,6 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     const {
       name,
       qualification,
-      image,
-      photo,
       fatherName,
       maritalStatus,
       dob,
@@ -3051,18 +3110,48 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     agent.email = email || agent.email;
     agent.mobile = mobile || agent.mobile;
     agent.nomineeName = nomineeName || agent.nomineeName;
-    agent.nomineeRelationship =
-      nomineeRelationship || agent.nomineeRelationship;
+    agent.nomineeRelationship = nomineeRelationship || agent.nomineeRelationship;
     agent.nomineeDob = nomineeDob || agent.nomineeDob;
     agent.nomineeMobile = nomineeMobile || agent.nomineeMobile;
     agent.password = password || agent.password;
 
-    // Update image fields only if a new image is provided
-    if (image) {
-      agent.image = image;
+    // Check if image files are uploaded and update image URLs
+    if (req.files && req.files["image"]) {
+      const formDataWithImages = new FormData();
+      formDataWithImages.append("imageone", req.files["image"][0].buffer, {
+        filename: req.files["image"][0].originalname,
+      });
+
+      const responseImage = await axios.post(
+        `${API_BASE_URL}/uploadimage`,
+        formDataWithImages,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      agent.image = responseImage.data.url;
     }
-    if (photo) {
-      agent.photo = photo;
+
+    if (req.files && req.files["photo"]) {
+      const formDataWithImages = new FormData();
+      formDataWithImages.append("imageone", req.files["photo"][0].buffer, {
+        filename: req.files["photo"][0].originalname,
+      });
+
+      const responsePhoto = await axios.post(
+        `${API_BASE_URL}/uploadimage`,
+        formDataWithImages,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      agent.photo = responsePhoto.data.url;
     }
 
     // Save the updated agent
