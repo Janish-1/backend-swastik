@@ -257,6 +257,7 @@ const userdetailsSchema = new mongoose.Schema(
     nomineeDob: { type: String },
     nomineeMobile: { type: String },
     photo: { type: String },
+    memberNo: { type: Number },
   },
   { collection: "allusers" }
 );
@@ -1859,7 +1860,7 @@ app.post("/upload", upload.single("image"), async (req, res) => {
 // Route to add a new user to the database
 app.post("/users", async (req, res) => {
   try {
-    const { name, email, password, userType, imageUrl } = req.body;
+    const { name, email, password, userType, imageUrl, memberNo } = req.body;
 
     if (!imageUrl) {
       return res.status(400).json({ message: "No image URL provided" });
@@ -1872,6 +1873,7 @@ app.post("/users", async (req, res) => {
       password,
       userType,
       image: imageUrl, // Assign the Cloudinary URL to the user's image property
+      memberNo,
     });
 
     // Save the new user to the database
@@ -1915,13 +1917,14 @@ app.get("/usersdetails/:id", async (req, res) => {
 app.put("/updateintuser/:id", upload.single("image"), async (req, res) => {
   try {
     const userId = req.params.id; // Extract the user ID from the request parameters
-    const { name, email, password, userType } = req.body;
+    const { name, email, password, userType, memberNo } = req.body;
 
     let updatedUserData = {
       name,
       email,
       password,
       userType,
+      memberNo,
     };
 
     // Check if an image was uploaded and update the image path if needed
@@ -2634,7 +2637,7 @@ app.get("/all-users/:id", async (req, res) => {
 app.put("/update-user/:email", async (req, res) => {
   try {
     const { email } = req.params;
-    const { name, newEmail, password, userType } = req.body;
+    const { name, newEmail, password, userType,memberNo } = req.body;
 
     // Find the user by their email
     const user = await allusersModel.findOne({ email });
@@ -2648,6 +2651,7 @@ app.put("/update-user/:email", async (req, res) => {
     user.email = newEmail || user.email; // Update email if provided, otherwise keep the existing email
     user.password = password || user.password; // Update password if provided, otherwise keep the existing password
     user.userType = userType;
+    user.memberNo = memmberNo || user.memberNo;
 
     // Save the updated user document
     const updatedUser = await user.save();
@@ -3077,6 +3081,7 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
 
     // Destructure the fields from the request body
     const {
+      memberNo,
       name,
       qualification,
       fatherName,
@@ -3097,6 +3102,7 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     } = req.body;
 
     // Update agent object with new values
+    agent.memberNo = memberNo || agent.memberNo;
     agent.name = name || agent.name;
     agent.qualification = qualification || agent.qualification;
     agent.fatherName = fatherName || agent.fatherName;
