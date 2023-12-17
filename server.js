@@ -115,6 +115,7 @@ const accountSchema = new mongoose.Schema(
     relationship: { type: String },
     nomineeMobileNo: { type: String },
     nomineeDateOfBirth: { type: Date },
+    approval: {type: String},
   },
   { collection: "accounts" }
 );
@@ -264,6 +265,8 @@ const userdetailsSchema = new mongoose.Schema(
 
 loginDB = mongoose.createConnection(uri, {
   dbName: "logindatabase",
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
 // Event handling for successful connection
@@ -3013,6 +3016,7 @@ app.get("/repayments/:id/loanId", async (req, res) => {
 app.post("/createagent", limiter, async (req, res) => {
   const {
     name,
+    memberNo,
     qualification,
     image, // Assuming this is a URL or path to the image file
     photo, // Assuming this is another image URL or path
@@ -3035,6 +3039,7 @@ app.post("/createagent", limiter, async (req, res) => {
 
   try {
     const newAgent = new allusersModel({
+      memberNo,
       name,
       qualification,
       image,
@@ -3227,6 +3232,72 @@ app.delete("/wallet/:walletId", async (req, res) => {
     res.json(deletedWallet);
   } catch (error) {
     res.status(500).json({ error: "Error deleting wallet" });
+  }
+});
+
+// Endpoint to delete images not found in the database
+app.delete('/deleteOrphanImages', async (req, res) => {
+  try {
+    const firstModelImages = await AccountModel.find({}, 'photo idProof');
+    const secondModelImages = await memberModel.find({}, 'photo idProof');
+    const thirdModelImages = await allusersModel.find({}, 'image photo');
+
+    // Extract image names from the fetched data
+    const allImageNames = [
+      ...firstModelImages.map(item => [item.photo, item.idProof]).flat(),
+      ...secondModelImages.map(item => [item.photo, item.idProof]).flat(),
+      ...thirdModelImages.map(item => [item.image, item.photo]).flat()
+      // Add more model image names following the same pattern
+    ];
+
+    // Fetch all image names from Cloudinary
+    const cloudinaryImageNames = await cloudinary.api.resources({
+      type: 'upload',
+    });
+
+    const cloudinaryImageNamesArray = cloudinaryImageNames.resources.map(
+      image => image.public_id
+    );
+
+    // Find images in Cloudinary that are not present in the database
+    const imagesToDelete = cloudinaryImageNamesArray.filter(
+      imageName => !allImageNames.includes(imageName)
+    );
+
+    // Delete images from Cloudinary that are not found in the database
+    for (const imageName of imagesToDelete) {
+      await cloudinary.uploader.destroy(imageName);
+    }
+
+    res.status(200).json({ message: 'Orphan images deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/expense-per-year', async (req, res) => {
+  try {
+    const expenseData = await ExpenseModel.aggregate([
+      {
+        $group: {
+          _id: { $year: '$date' },
+          totalAmount: { $sum: '$amount' },
+        },
+      },
+    ]);
+
+    // Calculate the total expense from the aggregated data
+    const totalExpense = expenseData.reduce((total, item) => total + item.totalAmount, 0);
+
+    const formattedData = expenseData.map((item) => ({
+      x: item._id.toString(), // Convert year to string
+      y: item.totalAmount,
+      text: `${((item.totalAmount / totalExpense) * 100).toFixed(2)}%`, // Calculate percentage
+    }));
+
+    res.status(200).json(formattedData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
