@@ -114,7 +114,7 @@ const accountSchema = new mongoose.Schema(
     relationship: { type: String },
     nomineeMobileNo: { type: String },
     nomineeDateOfBirth: { type: Date },
-    approval: {type: String},
+    approval: { type: String },
   },
   { collection: "accounts" }
 );
@@ -867,7 +867,9 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const base64String = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${
+      req.file.mimetype
+    };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -881,118 +883,115 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
 });
 
 // Route for updating a member's details and images using uploadmultiple endpoint
-app.put(
-  "/updatemember/:id",
-  async (req, res) => {
-    const memberId = req.params.id;
+app.put("/updatemember/:id", async (req, res) => {
+  const memberId = req.params.id;
 
-    // Destructure the request body containing member details
-    const {
-      memberNo,
-      fullName,
-      email,
-      branchName,
-      fatherName,
-      gender,
-      maritalStatus,
-      dateOfBirth,
-      currentAddress,
-      permanentAddress,
-      whatsAppNo,
-      nomineeName,
-      relationship,
-      nomineeMobileNo,
-      nomineeDateOfBirth,
-      walletId,
-      numberOfShares,
-      photo,
-      idProof,
-    } = req.body;
+  // Destructure the request body containing member details
+  const {
+    memberNo,
+    fullName,
+    email,
+    branchName,
+    fatherName,
+    gender,
+    maritalStatus,
+    dateOfBirth,
+    currentAddress,
+    permanentAddress,
+    whatsAppNo,
+    nomineeName,
+    relationship,
+    nomineeMobileNo,
+    nomineeDateOfBirth,
+    walletId,
+    numberOfShares,
+    photo,
+    idProof,
+  } = req.body;
 
-    try {
-      let photoUrl = photo || '';
-      let idProofUrl = idProof || '';
+  try {
+    let photoUrl = photo || "";
+    let idProofUrl = idProof || "";
 
-      // Check if photo file is uploaded
-      if (req.files && req.files["photo"] && req.files["photo"][0]) {
-        const formDataWithImages = new FormData();
-        formDataWithImages.append("imageone", req.files["photo"][0].buffer, {
-          filename: req.files["photo"][0].originalname,
-        });
+    // Check if photo file is uploaded
+    if (req.files && req.files["photo"] && req.files["photo"][0]) {
+      const formDataWithImages = new FormData();
+      formDataWithImages.append("imageone", req.files["photo"][0].buffer, {
+        filename: req.files["photo"][0].originalname,
+      });
 
-        const responseUpload = await axios.post(
-          `${API_BASE_URL}/uploadimage`,
-          formDataWithImages,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        photoUrl = responseUpload.data.urls[0];
-      }
-
-      // Check if idProof file is uploaded
-      if (req.files && req.files["idProof"] && req.files["idProof"][0]) {
-        const formDataWithImages = new FormData();
-        formDataWithImages.append("imageone", req.files["idProof"][0].buffer, {
-          filename: req.files["idProof"][0].originalname,
-        });
-
-        const responseUpload = await axios.post(
-          `${API_BASE_URL}/uploadimage`,
-          formDataWithImages,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        idProofUrl = responseUpload.data.urls[0];
-      }
-
-      // Find and update member details in the database
-      const updatedMember = await memberModel.findByIdAndUpdate(
-        memberId,
+      const responseUpload = await axios.post(
+        `${API_BASE_URL}/uploadimage`,
+        formDataWithImages,
         {
-          memberNo,
-          fullName,
-          email,
-          branchName,
-          fatherName,
-          gender,
-          maritalStatus,
-          dateOfBirth,
-          currentAddress,
-          permanentAddress,
-          whatsAppNo,
-          nomineeName,
-          relationship,
-          nomineeMobileNo,
-          nomineeDateOfBirth,
-          walletId,
-          numberOfShares,
-          photo: photoUrl,
-          idProof: idProofUrl,
-        },
-        { new: true }
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
-      if (!updatedMember) {
-        return res.status(404).json({ message: "Member not found" });
-      }
-
-      res
-        .status(200)
-        .json({ message: "Member updated successfully", data: updatedMember });
-    } catch (error) {
-      console.error("Error updating member:", error);
-      res.status(500).json({ message: "Error updating member" });
+      photoUrl = responseUpload.data.urls[0];
     }
+
+    // Check if idProof file is uploaded
+    if (req.files && req.files["idProof"] && req.files["idProof"][0]) {
+      const formDataWithImages = new FormData();
+      formDataWithImages.append("imageone", req.files["idProof"][0].buffer, {
+        filename: req.files["idProof"][0].originalname,
+      });
+
+      const responseUpload = await axios.post(
+        `${API_BASE_URL}/uploadimage`,
+        formDataWithImages,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      idProofUrl = responseUpload.data.urls[0];
+    }
+
+    // Find and update member details in the database
+    const updatedMember = await memberModel.findByIdAndUpdate(
+      memberId,
+      {
+        memberNo,
+        fullName,
+        email,
+        branchName,
+        fatherName,
+        gender,
+        maritalStatus,
+        dateOfBirth,
+        currentAddress,
+        permanentAddress,
+        whatsAppNo,
+        nomineeName,
+        relationship,
+        nomineeMobileNo,
+        nomineeDateOfBirth,
+        walletId,
+        numberOfShares,
+        photo: photoUrl,
+        idProof: idProofUrl,
+      },
+      { new: true }
+    );
+
+    if (!updatedMember) {
+      return res.status(404).json({ message: "Member not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Member updated successfully", data: updatedMember });
+  } catch (error) {
+    console.error("Error updating member:", error);
+    res.status(500).json({ message: "Error updating member" });
   }
-);
+});
 
 app.post("/deletemember/:id", limiter, async (req, res) => {
   const memberId = req.params.id;
@@ -2501,22 +2500,24 @@ app.get("/calculate-revenue", async (req, res) => {
 
     let monthlyRevenue = 0;
 
-    const activeLoans = await loansModel.find({
-      $or: [
-        {
-          $and: [
-            { releaseDate: { $lte: endDate } },
-            { endDate: { $gte: startDate } },
-          ],
-        },
-        {
-          $and: [
-            { releaseDate: { $gte: startDate } },
-            { endDate: { $exists: false } },
-          ],
-        },
-      ],
-    }).select("loanId");
+    const activeLoans = await loansModel
+      .find({
+        $or: [
+          {
+            $and: [
+              { releaseDate: { $lte: endDate } },
+              { endDate: { $gte: startDate } },
+            ],
+          },
+          {
+            $and: [
+              { releaseDate: { $gte: startDate } },
+              { endDate: { $exists: false } },
+            ],
+          },
+        ],
+      })
+      .select("loanId");
 
     const loanIds = activeLoans.map((loan) => loan.loanId);
 
@@ -2550,21 +2551,24 @@ const calculateRevenue = async (year, month) => {
 
       let monthlyRevenue = 0;
 
-      const activeLoans = await loansModel.find({
-      $or: [
-        {
-          $and: [
-            { releaseDate: { $lte: endDate } },
-            { endDate: { $gte: startDate } },
+      const activeLoans = await loansModel
+        .find({
+          $or: [
+            {
+              $and: [
+                { releaseDate: { $lte: endDate } },
+                { endDate: { $gte: startDate } },
+              ],
+            },
+            {
+              $and: [
+                { releaseDate: { $gte: startDate } },
+                { endDate: { $exists: false } },
+              ],
+            },
           ],
-        },
-        {
-          $and: [
-            { releaseDate: { $gte: startDate } },
-            { endDate: { $exists: false } },
-          ],
-        },
-      ],      }).select('loanId');
+        })
+        .select("loanId");
 
       const loanIds = activeLoans.map((loan) => loan.loanId);
 
@@ -2591,7 +2595,7 @@ const calculateRevenue = async (year, month) => {
 };
 
 // Define a route to populate revenue data for multiple years and months
-app.get('/populate-revenue', async (req, res) => {
+app.get("/populate-revenue", async (req, res) => {
   try {
     const currentDate = new Date();
     const currentYear = currentDate.getFullYear();
@@ -2600,18 +2604,31 @@ app.get('/populate-revenue', async (req, res) => {
     // Array to hold all the promises for revenue calculation
     const promises = [];
 
-    for (let year = currentYear; year <= currentYear + yearsToCalculate; year++) {
-      const totalMonths = (year === currentYear + yearsToCalculate) ? currentDate.getMonth() + 1 : 12;
+    for (
+      let year = currentYear;
+      year <= currentYear + yearsToCalculate;
+      year++
+    ) {
+      const totalMonths =
+        year === currentYear + yearsToCalculate
+          ? currentDate.getMonth() + 1
+          : 12;
 
       // Create an array of months for the current year
-      const monthsArray = Array.from({ length: totalMonths }, (_, month) => month + 1);
+      const monthsArray = Array.from(
+        { length: totalMonths },
+        (_, month) => month + 1
+      );
 
       // Execute revenue calculation for all months of the current year concurrently
       const yearPromises = monthsArray.map(async (month) => {
         try {
           const { monthlyRevenue } = await calculateRevenue(year, month);
         } catch (error) {
-          console.error(`Error calculating revenue for ${year}-${month}:`, error.message);
+          console.error(
+            `Error calculating revenue for ${year}-${month}:`,
+            error.message
+          );
         }
       });
 
@@ -2621,10 +2638,10 @@ app.get('/populate-revenue', async (req, res) => {
     // Wait for all promises to resolve
     await Promise.all(promises);
 
-    res.json({ message: 'Revenue data population completed' });
+    res.json({ message: "Revenue data population completed" });
   } catch (error) {
-    console.error('Error populating revenue data:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error populating revenue data:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -2716,7 +2733,7 @@ app.get("/all-users/:id", async (req, res) => {
 app.put("/update-user/:email", async (req, res) => {
   try {
     const { email } = req.params;
-    const { name, newEmail, password, userType,memberNo } = req.body;
+    const { name, newEmail, password, userType, memberNo } = req.body;
 
     // Find the user by their email
     const user = await allusersModel.findOne({ email });
@@ -3180,6 +3197,8 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
       nomineeDob,
       nomineeMobile,
       password,
+      image,
+      photo,
     } = req.body;
 
     // Update agent object with new values
@@ -3201,45 +3220,8 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     agent.nomineeDob = nomineeDob || agent.nomineeDob;
     agent.nomineeMobile = nomineeMobile || agent.nomineeMobile;
     agent.password = password || agent.password;
-
-    // Check if image files are uploaded and update image URLs
-    if (req.files && req.files["image"]) {
-      const formDataWithImages = new FormData();
-      formDataWithImages.append("imageone", req.files["image"][0].buffer, {
-        filename: req.files["image"][0].originalname,
-      });
-
-      const responseImage = await axios.post(
-        `${API_BASE_URL}/uploadimage`,
-        formDataWithImages,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      agent.image = responseImage.data.url;
-    }
-
-    if (req.files && req.files["photo"]) {
-      const formDataWithImages = new FormData();
-      formDataWithImages.append("imageone", req.files["photo"][0].buffer, {
-        filename: req.files["photo"][0].originalname,
-      });
-
-      const responsePhoto = await axios.post(
-        `${API_BASE_URL}/uploadimage`,
-        formDataWithImages,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      agent.photo = responsePhoto.data.url;
-    }
+    agent.image = image || agent.image;
+    agent.photo = photo || agent.photo;
 
     // Save the updated agent
     await agent.save();
@@ -3312,32 +3294,32 @@ app.delete("/wallet/:walletId", async (req, res) => {
 });
 
 // Endpoint to delete images not found in the database
-app.delete('/deleteOrphanImages', async (req, res) => {
+app.delete("/deleteOrphanImages", async (req, res) => {
   try {
-    const firstModelImages = await AccountModel.find({}, 'photo idProof');
-    const secondModelImages = await memberModel.find({}, 'photo idProof');
-    const thirdModelImages = await allusersModel.find({}, 'image photo');
+    const firstModelImages = await AccountModel.find({}, "photo idProof");
+    const secondModelImages = await memberModel.find({}, "photo idProof");
+    const thirdModelImages = await allusersModel.find({}, "image photo");
 
     // Extract image names from the fetched data
     const allImageNames = [
-      ...firstModelImages.map(item => [item.photo, item.idProof]).flat(),
-      ...secondModelImages.map(item => [item.photo, item.idProof]).flat(),
-      ...thirdModelImages.map(item => [item.image, item.photo]).flat()
+      ...firstModelImages.map((item) => [item.photo, item.idProof]).flat(),
+      ...secondModelImages.map((item) => [item.photo, item.idProof]).flat(),
+      ...thirdModelImages.map((item) => [item.image, item.photo]).flat(),
       // Add more model image names following the same pattern
     ];
 
     // Fetch all image names from Cloudinary
     const cloudinaryImageNames = await cloudinary.api.resources({
-      type: 'upload',
+      type: "upload",
     });
 
     const cloudinaryImageNamesArray = cloudinaryImageNames.resources.map(
-      image => image.public_id
+      (image) => image.public_id
     );
 
     // Find images in Cloudinary that are not present in the database
     const imagesToDelete = cloudinaryImageNamesArray.filter(
-      imageName => !allImageNames.includes(imageName)
+      (imageName) => !allImageNames.includes(imageName)
     );
 
     // Delete images from Cloudinary that are not found in the database
@@ -3345,25 +3327,28 @@ app.delete('/deleteOrphanImages', async (req, res) => {
       await cloudinary.uploader.destroy(imageName);
     }
 
-    res.status(200).json({ message: 'Orphan images deleted successfully' });
+    res.status(200).json({ message: "Orphan images deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/expense-per-year', async (req, res) => {
+app.get("/expense-per-year", async (req, res) => {
   try {
     const expenseData = await ExpenseModel.aggregate([
       {
         $group: {
-          _id: { $year: '$date' },
-          totalAmount: { $sum: '$amount' },
+          _id: { $year: "$date" },
+          totalAmount: { $sum: "$amount" },
         },
       },
     ]);
 
     // Calculate the total expense from the aggregated data
-    const totalExpense = expenseData.reduce((total, item) => total + item.totalAmount, 0);
+    const totalExpense = expenseData.reduce(
+      (total, item) => total + item.totalAmount,
+      0
+    );
 
     const formattedData = expenseData.map((item) => ({
       x: item._id.toString(), // Convert year to string
@@ -3378,20 +3363,20 @@ app.get('/expense-per-year', async (req, res) => {
 });
 
 // Endpoint to fetch stacked chart data (yearly profits)
-app.get('/stacked-chart-data', async (req, res) => {
+app.get("/stacked-chart-data", async (req, res) => {
   try {
     const yearlyProfits = await Revenue.aggregate([
       {
         $group: {
-          _id: '$year', // Grouping by year
-          totalProfit: { $sum: '$monthlyRevenue' }, // Calculating yearly profit
+          _id: "$year", // Grouping by year
+          totalProfit: { $sum: "$monthlyRevenue" }, // Calculating yearly profit
         },
       },
       {
         $project: {
           _id: 0, // Exclude _id field from the result
-          x: '$_id', // Rename _id to x
-          y: '$totalProfit', // Yearly profit as y value
+          x: "$_id", // Rename _id to x
+          y: "$totalProfit", // Yearly profit as y value
         },
       },
     ]);
