@@ -13,7 +13,6 @@ const cloudinary = require("cloudinary").v2;
 
 // Specify the absolute path to your .env file
 const envPath = path.resolve(__dirname, "../.env");
-
 // Load environment variables from the specified .env file
 dotenv.config({ path: envPath });
 
@@ -2491,64 +2490,141 @@ app.get("/calculate-revenue", async (req, res) => {
   try {
     const { year, month } = req.query;
 
-    // Check if year is provided in the query
-    if (!year) {
+    if (!year || !month) {
       return res.status(400).json({
-        error: "Please provide the year in the query parameters.",
+        error: "Please provide both year and month in the query parameters.",
       });
     }
 
-    let totalRevenue = 0;
+    const startDate = new Date(year, month - 1, 1); // Month in JavaScript Date starts from 0 (January)
+    const endDate = new Date(year, month, 0); // To get the last day of the month
 
-    // Calculate total revenue for each month in the provided year
-    for (let month = 1; month <= 12; month++) {
-      const startDate = new Date(year, month - 1, 1); // Month in JavaScript Date starts from 0 (January)
-      const endDate = new Date(year, month, 0); // To get the last day of the month
+    let monthlyRevenue = 0;
 
-      // Find all active loans within the specified month and year using loansModel
-      const activeLoans = await loansModel
-        .find({
-          $or: [
-            {
-              $and: [
-                { releaseDate: { $lte: endDate } },
-                { endDate: { $gte: startDate } },
-              ],
-            },
-            {
-              $and: [
-                { releaseDate: { $gte: startDate } },
-                { endDate: { $exists: false } },
-              ],
-            },
+    const activeLoans = await loansModel.find({
+      $or: [
+        {
+          $and: [
+            { releaseDate: { $lte: endDate } },
+            { endDate: { $gte: startDate } },
           ],
-        })
-        .select("loanId"); // Selecting only the loanId field
+        },
+        {
+          $and: [
+            { releaseDate: { $gte: startDate } },
+            { endDate: { $exists: false } },
+          ],
+        },
+      ],
+    }).select("loanId");
 
-      // Extract Loan IDs from active loans
-      const loanIds = activeLoans.map((loan) => loan.loanId);
+    const loanIds = activeLoans.map((loan) => loan.loanId);
 
-      // Fetch repayments for each loan and calculate revenue
-      for (const loanId of loanIds) {
-        const repayments = await repaymentModel.find({ loanId });
-        for (const repayment of repayments) {
-          const { dueAmount, interest } = repayment;
-          totalRevenue += dueAmount * (interest / 100);
-        }
+    for (const loanId of loanIds) {
+      const repayments = await repaymentModel.find({ loanId });
+      for (const repayment of repayments) {
+        const { dueAmount, interest } = repayment;
+        monthlyRevenue += dueAmount * (interest / 100);
       }
     }
 
-    // Update or insert the calculated totalRevenue for the given year
-    const filter = { year };
-    const update = { year, totalRevenue };
+    // Store or update monthly revenue for the given year and month
+    const filter = { year, month };
+    const update = { year, month, monthlyRevenue };
     const options = { upsert: true, new: true };
 
     await Revenue.findOneAndUpdate(filter, update, options);
 
-    res.json({ totalRevenue });
+    res.json({ monthlyRevenue });
   } catch (error) {
     console.error("Error calculating revenue:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+const calculateRevenue = async (year, month) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+
+      let monthlyRevenue = 0;
+
+      const activeLoans = await loansModel.find({
+      $or: [
+        {
+          $and: [
+            { releaseDate: { $lte: endDate } },
+            { endDate: { $gte: startDate } },
+          ],
+        },
+        {
+          $and: [
+            { releaseDate: { $gte: startDate } },
+            { endDate: { $exists: false } },
+          ],
+        },
+      ],      }).select('loanId');
+
+      const loanIds = activeLoans.map((loan) => loan.loanId);
+
+      for (const loanId of loanIds) {
+        const repayments = await repaymentModel.find({ loanId });
+        for (const repayment of repayments) {
+          const { dueAmount, interest } = repayment;
+          monthlyRevenue += dueAmount * (interest / 100);
+        }
+      }
+
+      const filter = { year, month };
+      const update = { year, month, monthlyRevenue };
+      const options = { upsert: true, new: true };
+
+      await Revenue.findOneAndUpdate(filter, update, options);
+
+      resolve({ monthlyRevenue });
+    } catch (error) {
+      console.error("Error calculating revenue:", error);
+      reject(new Error("Internal server error"));
+    }
+  });
+};
+
+// Define a route to populate revenue data for multiple years and months
+app.get('/populate-revenue', async (req, res) => {
+  try {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const yearsToCalculate = 10;
+
+    // Array to hold all the promises for revenue calculation
+    const promises = [];
+
+    for (let year = currentYear; year <= currentYear + yearsToCalculate; year++) {
+      const totalMonths = (year === currentYear + yearsToCalculate) ? currentDate.getMonth() + 1 : 12;
+
+      // Create an array of months for the current year
+      const monthsArray = Array.from({ length: totalMonths }, (_, month) => month + 1);
+
+      // Execute revenue calculation for all months of the current year concurrently
+      const yearPromises = monthsArray.map(async (month) => {
+        try {
+          const { monthlyRevenue } = await calculateRevenue(year, month);
+        } catch (error) {
+          console.error(`Error calculating revenue for ${year}-${month}:`, error.message);
+        }
+      });
+
+      promises.push(...yearPromises);
+    }
+
+    // Wait for all promises to resolve
+    await Promise.all(promises);
+
+    res.json({ message: 'Revenue data population completed' });
+  } catch (error) {
+    console.error('Error populating revenue data:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -3298,6 +3374,31 @@ app.get('/expense-per-year', async (req, res) => {
     res.status(200).json(formattedData);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to fetch stacked chart data (yearly profits)
+app.get('/stacked-chart-data', async (req, res) => {
+  try {
+    const yearlyProfits = await Revenue.aggregate([
+      {
+        $group: {
+          _id: '$year', // Grouping by year
+          totalProfit: { $sum: '$monthlyRevenue' }, // Calculating yearly profit
+        },
+      },
+      {
+        $project: {
+          _id: 0, // Exclude _id field from the result
+          x: '$_id', // Rename _id to x
+          y: '$totalProfit', // Yearly profit as y value
+        },
+      },
+    ]);
+
+    res.json(yearlyProfits);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
