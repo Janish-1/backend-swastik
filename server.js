@@ -230,6 +230,7 @@ mongoose.connection.on("error", (err) => {
 const userdetailsSchema = new mongoose.Schema(
   {
     image: { type: String },
+    dbName: { type: String },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -344,6 +345,8 @@ app.post("/all-login", limiter, async (req, res) => {
       // Add other necessary user information to the payload
     };
 
+    let dbName; // Define dbName here
+
     // Check if the user is an admin, if so, set the global variable
     if (user.userType === "admin") {
       mongoose.connection
@@ -437,6 +440,17 @@ app.post("/all-login", limiter, async (req, res) => {
     } else {
       console.error("Invalid Role");
     }
+
+    // Update the user object with dbName
+    user.dbName = dbName;
+
+    // Update the user's dbName in the database
+    await allusersModel.findByIdAndUpdate(
+      user._id, // user's ID
+      { $set: { dbName } }, // setting dbName field to dbName determined above
+      { new: true } // to return the updated document
+    );
+
     const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
 
     res.json({ message: "Login Success!", token });
@@ -886,6 +900,12 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
 app.put("/updatemember/:id", async (req, res) => {
   const memberId = req.params.id;
 
+      // Fetch existing member details from the database
+      const existingMember = await memberModel.findById(memberId);
+      if (!existingMember) {
+        return res.status(404).json({ message: "Member not found" });
+      }
+
   // Destructure the request body containing member details
   const {
     memberNo,
@@ -910,8 +930,9 @@ app.put("/updatemember/:id", async (req, res) => {
   } = req.body;
 
   try {
-    let photoUrl = photo || "";
-    let idProofUrl = idProof || "";
+    // Determine whether to use existing URLs or new URLs from the request
+    let photoUrl = photo || existingMember.photo || "";
+    let idProofUrl = idProof || existingMember.idProof || "";
 
     // Check if photo file is uploaded
     if (req.files && req.files["photo"] && req.files["photo"][0]) {
@@ -951,7 +972,7 @@ app.put("/updatemember/:id", async (req, res) => {
       );
 
       idProofUrl = responseUpload.data.urls[0];
-    }
+    }    
 
     // Find and update member details in the database
     const updatedMember = await memberModel.findByIdAndUpdate(
@@ -1915,42 +1936,42 @@ app.get("/usersdetails/:id", async (req, res) => {
 });
 
 // Route to update an existing user in the database
-app.put("/updateintuser/:id", upload.single("image"), async (req, res) => {
+app.put("/updateintuser/:id", limiter, async (req, res) => {
   try {
     const userId = req.params.id; // Extract the user ID from the request parameters
-    const { name, email, password, userType, memberNo } = req.body;
-
-    let updatedUserData = {
+    const {
       name,
       email,
       password,
       userType,
       memberNo,
-    };
+      image,
+      // Add other fields you want to update here
+    } = req.body;
 
-    // Check if an image was uploaded and update the image path if needed
-    if (req.file) {
-      updatedUserData.image = req.file.path;
-    }
+    // Fetch the existing user from the database
+    const user = await allusersModel.findById(userId);
 
-    // Find the user by ID and update the user data
-    const updatedUser = await allusersModel.findByIdAndUpdate(
-      userId,
-      updatedUserData,
-      { new: true }
-    );
-
-    if (!updatedUser) {
+    if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res
-      .status(200)
-      .json({ message: "User updated successfully!", user: updatedUser });
+    // Update user object with new values
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.password = password || user.password;
+    user.userType = userType || user.userType;
+    user.memberNo = memberNo || user.memberNo;
+    user.image = image || user.image;
+    // Update other fields similarly as needed
+
+    // Save the updated user
+    await user.save();
+
+    res.status(200).json({ message: "User data updated", data: user });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Failed to update user", error: error.message });
+    console.error("Error updating user data:", error);
+    res.status(500).json({ message: "Error updating user data" });
   }
 });
 
@@ -2747,7 +2768,8 @@ app.put("/update-user/:email", async (req, res) => {
     user.email = newEmail || user.email; // Update email if provided, otherwise keep the existing email
     user.password = password || user.password; // Update password if provided, otherwise keep the existing password
     user.userType = userType;
-    user.memberNo = memmberNo || user.memberNo;
+    user.memberNo = memberNo || user.memberNo;
+    // user.image = image || user.image;
 
     // Save the updated user document
     const updatedUser = await user.save();
@@ -3012,8 +3034,10 @@ app.post(
         return res.status(404).json({ message: "Loan not found" });
       }
 
+      const accountNumber = Number(loan.account);
+
       // Fetch associated account using memberNo from loan
-      const account = await AccountModel.findOne({ memberNo: loan.memberNo });
+      const account = await AccountModel.findOne({ accountNumber : accountNumber });
       if (!account) {
         return res.status(404).json({ message: "Account not found" });
       }
@@ -3216,7 +3240,8 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     agent.email = email || agent.email;
     agent.mobile = mobile || agent.mobile;
     agent.nomineeName = nomineeName || agent.nomineeName;
-    agent.nomineeRelationship = nomineeRelationship || agent.nomineeRelationship;
+    agent.nomineeRelationship =
+    nomineeRelationship || agent.nomineeRelationship;
     agent.nomineeDob = nomineeDob || agent.nomineeDob;
     agent.nomineeMobile = nomineeMobile || agent.nomineeMobile;
     agent.password = password || agent.password;
@@ -3293,45 +3318,35 @@ app.delete("/wallet/:walletId", async (req, res) => {
   }
 });
 
-// Endpoint to delete images not found in the database
-app.delete("/deleteOrphanImages", async (req, res) => {
-  try {
-    const firstModelImages = await AccountModel.find({}, "photo idProof");
-    const secondModelImages = await memberModel.find({}, "photo idProof");
-    const thirdModelImages = await allusersModel.find({}, "image photo");
+// Endpoint to delete images not found in the provided image URLs list
+// app.delete("/deleteOrphanImages", async (req, res) => {
+//   try {
+//     const { imageUrls } = req.body; // Assuming imageUrls is an array of image URLs
 
-    // Extract image names from the fetched data
-    const allImageNames = [
-      ...firstModelImages.map((item) => [item.photo, item.idProof]).flat(),
-      ...secondModelImages.map((item) => [item.photo, item.idProof]).flat(),
-      ...thirdModelImages.map((item) => [item.image, item.photo]).flat(),
-      // Add more model image names following the same pattern
-    ];
+//     // Fetch all image names from Cloudinary
+//     const cloudinaryImageNames = await cloudinary.api.resources({
+//       type: "upload",
+//     });
 
-    // Fetch all image names from Cloudinary
-    const cloudinaryImageNames = await cloudinary.api.resources({
-      type: "upload",
-    });
+//     const cloudinaryImageNamesArray = cloudinaryImageNames.resources.map(
+//       (image) => image.public_id
+//     );
 
-    const cloudinaryImageNamesArray = cloudinaryImageNames.resources.map(
-      (image) => image.public_id
-    );
+//     // Find images in Cloudinary that are not present in the provided image URLs list
+//     const imagesToDelete = cloudinaryImageNamesArray.filter(
+//       (imageName) => !imageUrls.includes(imageName)
+//     );
 
-    // Find images in Cloudinary that are not present in the database
-    const imagesToDelete = cloudinaryImageNamesArray.filter(
-      (imageName) => !allImageNames.includes(imageName)
-    );
+//     // Delete images from Cloudinary that are not found in the provided image URLs list
+//     for (const imageName of imagesToDelete) {
+//       await cloudinary.uploader.destroy(imageName);
+//     }
 
-    // Delete images from Cloudinary that are not found in the database
-    for (const imageName of imagesToDelete) {
-      await cloudinary.uploader.destroy(imageName);
-    }
-
-    res.status(200).json({ message: "Orphan images deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+//     res.status(200).json({ message: "Orphan images deleted successfully" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 app.get("/expense-per-year", async (req, res) => {
   try {
@@ -3384,6 +3399,144 @@ app.get("/stacked-chart-data", async (req, res) => {
     res.json(yearlyProfits);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Assuming you have an Express route to handle the request
+app.get("/getAllMemberImages", async (req, res) => {
+  try {
+    // Find all documents in the 'members' collection where 'photo' and 'idProof' fields exist and are not null or empty
+    const allMemberImages = await memberModel.find(
+      {
+        $or: [
+          { photo: { $exists: true, $ne: null, $ne: "" } },
+          { idProof: { $exists: true, $ne: null, $ne: "" } },
+        ],
+      },
+      ["photo", "idProof"]
+    );
+
+    // Extract image URLs from the retrieved documents
+    const imageUrls = allMemberImages.reduce((acc, member) => {
+      if (member.photo) {
+        acc.push(member.photo);
+      }
+      if (member.idProof) {
+        acc.push(member.idProof);
+      }
+      return acc;
+    }, []);
+
+    res.status(200).json({ imageUrls });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Assuming an Express route to handle the request
+app.get("/getAllAccountImages", async (req, res) => {
+  try {
+    // Find all documents in the 'accounts' collection where 'photo' and 'idProof' fields exist and are not null or empty
+    const allAccountImages = await AccountModel.find(
+      {
+        $or: [
+          { photo: { $exists: true, $ne: null, $ne: "" } },
+          { idProof: { $exists: true, $ne: null, $ne: "" } },
+        ],
+      },
+      ["photo", "idProof"]
+    );
+
+    // Extract image URLs from the retrieved documents
+    const imageUrls = allAccountImages.reduce((acc, account) => {
+      if (account.photo) {
+        acc.push(account.photo);
+      }
+      if (account.idProof) {
+        acc.push(account.idProof);
+      }
+      return acc;
+    }, []);
+
+    res.status(200).json({ imageUrls });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to fetch all images from the 'userdetails' collection
+app.get("/getAllUserImages", async (req, res) => {
+  try {
+    // Find all documents in the 'userdetails' collection where either 'photo' or 'image' fields exist and are not null or empty
+    const allUserImages = await allusersModel.find(
+      {
+        $or: [
+          { photo: { $exists: true, $ne: null, $ne: "" } },
+          { image: { $exists: true, $ne: null, $ne: "" } },
+        ],
+      },
+      "photo image"
+    );
+
+    const imageUrls = allUserImages.reduce((acc, user) => {
+      if (user.photo) acc.push(user.photo);
+      if (user.image) acc.push(user.image);
+      return acc;
+    }, []);
+
+    res.status(200).json({ imageUrls });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Endpoint to update loan status to Approved
+app.put("/approveaccount/:accountId", async (req, res) => {
+  const { accountId } = req.params;
+
+  try {
+    // Assuming you have a LoanModel or a similar model/schema
+    const account = await AccountModel.findByIdAndUpdate(
+      accountId,
+      { approval: "Approved" },
+      { new: true }
+    );
+
+    if (!account) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    res.status(200).json({ message: "Account status updated to Approved", account });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error updating Account status to Approved",
+      error: error.message,
+    });
+  }
+});
+
+// Endpoint to update loan status to Cancelled
+app.put("/cancelaccount/:accountId", async (req, res) => {
+  const { accountId } = req.params;
+
+  try {
+    const account = await AccountModel.findByIdAndUpdate(
+      accountId,
+      { approval: "Cancelled" },
+      { new: true }
+    );
+
+    if (!account) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    res.status(200).json({ message: "Account status updated to Cancelled", account });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error updating Account status to Cancelled",
+      error: error.message,
+    });
   }
 });
 
