@@ -133,16 +133,6 @@ const transactionSchema = new mongoose.Schema(
   { collection: "transactions" }
 );
 
-const expenseSchema = new mongoose.Schema(
-  {
-    date: { type: Date, default: Date.now },
-    category: { type: String, required: true },
-    amount: { type: Number, required: true },
-    reference: { type: String, required: true },
-    note: { type: String, required: true },
-  },
-  { collection: "expenses" }
-);
 
 const repaymentDetailsSchema = new mongoose.Schema(
   {
@@ -155,59 +145,18 @@ const repaymentDetailsSchema = new mongoose.Schema(
   { collection: "RepaymentDetails" }
 );
 
-const categorySchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-    },
-  },
-  { collection: "category" }
-);
-
-const revenueSchema = new mongoose.Schema(
-  {
-    year: {
-      type: Number,
-      required: true,
-    },
-    month: {
-      type: Number,
-      required: true,
-    },
-    monthlyRevenue: {
-      type: Number,
-      required: true,
-    },
-    // Add other fields if needed
-  },
-  { collection: "Revenue" }
-);
-
-const walletschema = mongoose.Schema(
-  {
-    walletId: { type: Number, required: true, unique: true },
-    numberOfShares: { type: Number, required: true },
-  },
-  { collection: "Wallet" }
-);
-
 const memberModel = mongoose.model("members", memberSchema);
 const loansModel = mongoose.model("loans", loanSchema);
 const repaymentModel = mongoose.model("repayments", repaymentSchema);
 const AccountModel = mongoose.model("accounts", accountSchema);
 const TransactionsModel = mongoose.model("transactions", transactionSchema);
-const ExpenseModel = mongoose.model("expenses", expenseSchema);
-const categoryModel = mongoose.model("category", categorySchema);
-const Revenue = mongoose.model("Revenue", revenueSchema);
 const RepaymentDetails = mongoose.model(
   "RepaymentDetails",
   repaymentDetailsSchema
 );
-const walletModel = mongoose.model("wallet", walletschema);
 
 mongoose.connect(uri, {
-  dbName: "admindatabase",
+  dbName: "commondatabase",
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -226,6 +175,42 @@ mongoose.connection.on("disconnected", () => {
 mongoose.connection.on("error", (err) => {
   console.error("Connection error:", err);
 });
+
+
+const expenseSchema = new mongoose.Schema(
+  {
+    date: { type: Date, default: Date.now },
+    category: { type: String, required: true },
+    amount: { type: Number, required: true },
+    reference: { type: String, required: true },
+    note: { type: String, required: true },
+  },
+  { collection: "expenses" }
+);
+
+const categorySchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+  },
+  { collection: "category" }
+);
+
+const revenueSchema = new mongoose.Schema(
+  {
+    year: { type: Number, required: true },
+    month: { type: Number, required: true },
+    monthlyRevenue: { type: Number, required: true },
+  },
+  { collection: "Revenue" }
+);
+
+const walletschema = mongoose.Schema(
+  {
+    walletId: { type: Number, required: true, unique: true },
+    numberOfShares: { type: Number, required: true },
+  },
+  { collection: "Wallet" }
+);
 
 const userdetailsSchema = new mongoose.Schema(
   {
@@ -285,6 +270,10 @@ loginDB.on("error", (err) => {
 });
 
 const allusersModel = loginDB.model("allusers", userdetailsSchema);
+const ExpenseModel = loginDB.model("expenses", expenseSchema);
+const categoryModel = loginDB.model("category", categorySchema);
+const Revenue = loginDB.model("Revenue", revenueSchema);
+const walletModel = loginDB.model("wallet", walletschema);
 
 // // Multer configuration for handling file uploads
 // const storage = multer.diskStorage({
@@ -335,15 +324,6 @@ app.post("/all-login", limiter, async (req, res) => {
     if (user.password !== password) {
       return res.status(401).json({ message: "Invalid Password" });
     }
-
-    // User authentication successful, create payload for JWT
-    const payload = {
-      userId: user._id,
-      email: user.email,
-      username: user.firstName, // Make sure to replace this with the correct user field for username
-      role: user.userType,
-      // Add other necessary user information to the payload
-    };
 
     let dbName; // Define dbName here
 
@@ -451,6 +431,15 @@ app.post("/all-login", limiter, async (req, res) => {
       { new: true } // to return the updated document
     );
 
+    // User authentication successful, create payload for JWT
+    const payload = {
+      userId: user._id,
+      email: user.email,
+      username: user.name, // Make sure to replace this with the correct user field for username
+      role: user.userType,
+      db: user.dbName,
+      // Add other necessary user information to the payload
+    };
     const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
 
     res.json({ message: "Login Success!", token });
@@ -3152,6 +3141,7 @@ app.post("/createagent", limiter, async (req, res) => {
     nomineeDob,
     nomineeMobile,
     password,
+    branchName,
   } = req.body;
 
   try {
@@ -3176,6 +3166,7 @@ app.post("/createagent", limiter, async (req, res) => {
       nomineeDob,
       nomineeMobile,
       password,
+      branchName,
       userType: "agent",
     });
 
@@ -3223,6 +3214,7 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
       password,
       image,
       photo,
+      branchName,
     } = req.body;
 
     // Update agent object with new values
@@ -3247,6 +3239,7 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     agent.password = password || agent.password;
     agent.image = image || agent.image;
     agent.photo = photo || agent.photo;
+    agent.branchName = branchName || agent.branchName;
 
     // Save the updated agent
     await agent.save();
@@ -3537,6 +3530,109 @@ app.put("/cancelaccount/:accountId", async (req, res) => {
       message: "Error updating Account status to Cancelled",
       error: error.message,
     });
+  }
+});
+
+app.get('/admin-databases', async (req, res) => {
+  try {
+    // Find all databases where userType is 'admin'
+    const adminDatabases = await allusersModel.find().distinct('dbName');
+
+    res.status(200).json({ databases: adminDatabases });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// GET endpoint to fetch databases based on a specific branchName
+app.get('/branch-databases/:objectId', async (req, res) => {
+  try {
+    const { objectId } = req.params; // Get the objectId from the route parameters
+
+    // Validate if the provided ObjectId is valid
+    if (mongoose.Types.ObjectId.isValid(objectId)) {
+      // Find a document by the provided ObjectId
+      const document = await allusersModel.findOne({ _id: objectId });
+
+      if (document) {
+        const branchName = document.branchName;
+
+        // Find all distinct 'dbName' values where branchName matches the document's branchName
+        const branchDatabases = await allusersModel
+          .find({ branchName }) // Find databases with the same branchName
+          .distinct('dbName');
+
+        res.status(200).json({ databases: branchDatabases });
+      } else {
+        res.status(404).json({ message: 'Document not found' });
+      }
+    } else {
+      res.status(400).json({ message: 'Invalid ObjectId' });
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Endpoint to fetch user details based on database name input
+app.get("/userdetails/:databaseName", async (req, res) => {
+  const databaseName = req.params.databaseName;
+
+  try {
+    // Fetch name, email, and branchName based on the provided database name
+    const userDetails = await allusersModel.find({ dbName: databaseName }, { name: 1, email: 1, branchName: 1, _id: 0 });
+
+    if (userDetails.length === 0) {
+      return res.status(404).json({ message: "No user details found for the provided database name" });
+    }
+
+    // Send the fetched user details as a JSON response
+    res.json(userDetails);
+  } catch (err) {
+    // If an error occurs during the fetch, send an error response
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get("/switch-database/:dbName", async (req, res) => {
+  const { dbName } = req.params;
+
+  try {
+    mongoose.connection
+      .close()
+      .then(() => {
+        return mongoose.connect(uri, {
+          dbName,
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+        });
+      })
+      .then(() => {
+        // Event handling for successful connection
+        mongoose.connection.on("connected", () => {
+          console.log("Connected to MongoDB(agent)");
+        });
+
+        // Event handling for disconnection
+        mongoose.connection.on("disconnected", () => {
+          console.log("Disconnected from MongoDB(agent)");
+        });
+
+        // Event handling for error
+        mongoose.connection.on("error", (err) => {
+          console.error("Connection error:", err);
+        });
+      })
+      .catch((err) => {
+        console.error("Error:", err);
+      });
+
+    res.json({ message: "Database switched successfully" });
+  } catch (error) {
+    console.error("Switch Database Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
