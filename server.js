@@ -133,7 +133,6 @@ const transactionSchema = new mongoose.Schema(
   { collection: "transactions" }
 );
 
-
 const repaymentDetailsSchema = new mongoose.Schema(
   {
     repaymentId: { type: String, ref: "repaymentModel" },
@@ -163,19 +162,18 @@ mongoose.connect(uri, {
 
 // Event handling for successful connection
 mongoose.connection.on("connected", () => {
-  console.log("Connected to MongoDB(Common)");
+  // // // console.log("Connected to MongoDB(Common)");
 });
 
 // Event handling for disconnection
 mongoose.connection.on("disconnected", () => {
-  console.log("Disconnected from MongoDB(Common)");
+  // // // console.log("Disconnected from MongoDB(Common)");
 });
 
 // Event handling for error
 mongoose.connection.on("error", (err) => {
-  console.error("Connection error:", err);
+  // // // console.error("Connection error:", err);
 });
-
 
 const expenseSchema = new mongoose.Schema(
   {
@@ -248,6 +246,27 @@ const userdetailsSchema = new mongoose.Schema(
   { collection: "allusers" }
 );
 
+const memberids = new mongoose.Schema(
+  {
+    memberNo: { type: Number, unique: true },
+  },
+  { collection: "membersids" }
+);
+
+const loanids = new mongoose.Schema(
+  {
+    loanId: { type: Number, unique: true },
+  },
+  { collection: "loanids" }
+);
+
+const accountids = new mongoose.Schema(
+  {
+    accountNumber: { type: Number, unique: true },
+  },
+  { collection: "accountids" }
+);
+
 loginDB = mongoose.createConnection(uri, {
   dbName: "logindatabase",
   useNewUrlParser: true,
@@ -256,17 +275,17 @@ loginDB = mongoose.createConnection(uri, {
 
 // Event handling for successful connection
 loginDB.on("connected", () => {
-  console.log("Connected to loginDB");
+  // // // console.log("Connected to loginDB");
 });
 
 // Event handling for disconnection
 loginDB.on("disconnected", () => {
-  console.log("Disconnected from loginDB");
+  // // // console.log("Disconnected from loginDB");
 });
 
 // Event handling for error
 loginDB.on("error", (err) => {
-  console.error("Connection error:", err);
+  // // // console.error("Connection error:", err);
 });
 
 const allusersModel = loginDB.model("allusers", userdetailsSchema);
@@ -274,6 +293,9 @@ const ExpenseModel = loginDB.model("expenses", expenseSchema);
 const categoryModel = loginDB.model("category", categorySchema);
 const Revenue = loginDB.model("Revenue", revenueSchema);
 const walletModel = loginDB.model("wallet", walletschema);
+const memberidsModel = loginDB.model("membersids", memberids);
+const loanidModel = loginDB.model("loanids", loanids);
+const accountidModel = loginDB.model("accountids", accountids);
 
 // // Multer configuration for handling file uploads
 // const storage = multer.diskStorage({
@@ -341,21 +363,21 @@ app.post("/all-login", limiter, async (req, res) => {
         .then(() => {
           // Event handling for successful connection
           mongoose.connection.on("connected", () => {
-            console.log("Connected to MongoDB(Admin)");
+            // // // console.log("Connected to MongoDB(Admin)");
           });
 
           // Event handling for disconnection
           mongoose.connection.on("disconnected", () => {
-            console.log("Disconnected from MongoDB(Admin)");
+            // // // console.log("Disconnected from MongoDB(Admin)");
           });
 
           // Event handling for error
           mongoose.connection.on("error", (err) => {
-            console.error("Connection error:", err);
+            // // // console.error("Connection error:", err);
           });
         })
         .catch((err) => {
-          console.error("Error:", err);
+          // // // console.error("Error:", err);
         });
     } else if (user.userType === "manager") {
       dbName = `manager_${user._id.toString()}`; // Prefix with "manager_"
@@ -371,21 +393,21 @@ app.post("/all-login", limiter, async (req, res) => {
         .then(() => {
           // Event handling for successful connection
           mongoose.connection.on("connected", () => {
-            console.log("Connected to MongoDB(Manager)");
+            // // // console.log("Connected to MongoDB(Manager)");
           });
 
           // Event handling for disconnection
           mongoose.connection.on("disconnected", () => {
-            console.log("Disconnected from MongoDB(Manger)");
+            // // // console.log("Disconnected from MongoDB(Manger)");
           });
 
           // Event handling for error
           mongoose.connection.on("error", (err) => {
-            console.error("Connection error:", err);
+            // // // console.error("Connection error:", err);
           });
         })
         .catch((err) => {
-          console.error("Error:", err);
+          // // // console.error("Error:", err);
         });
     } else if (user.userType === "agent") {
       dbName = `agent_${user._id.toString()}`; // Prefix with "manager_"
@@ -401,24 +423,24 @@ app.post("/all-login", limiter, async (req, res) => {
         .then(() => {
           // Event handling for successful connection
           mongoose.connection.on("connected", () => {
-            console.log("Connected to MongoDB(agent)");
+            // // // console.log("Connected to MongoDB(agent)");
           });
 
           // Event handling for disconnection
           mongoose.connection.on("disconnected", () => {
-            console.log("Disconnected from MongoDB(agent)");
+            // // // console.log("Disconnected from MongoDB(agent)");
           });
 
           // Event handling for error
           mongoose.connection.on("error", (err) => {
-            console.error("Connection error:", err);
+            // // // console.error("Connection error:", err);
           });
         })
         .catch((err) => {
-          console.error("Error:", err);
+          // // // console.error("Error:", err);
         });
     } else {
-      console.error("Invalid Role");
+      // // // console.error("Invalid Role");
     }
 
     // Update the user object with dbName
@@ -444,7 +466,7 @@ app.post("/all-login", limiter, async (req, res) => {
 
     res.json({ message: "Login Success!", token });
   } catch (error) {
-    console.error("Login Error:", error);
+    // // // console.error("Login Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
@@ -470,10 +492,10 @@ app.post("/create", limiter, async (req, res) => {
 
   let role = "user";
   const userEmailDomain = email.split("@")[1]; // Extract domain from email
-  // console.log("User email domain:", userEmailDomain); // Check the extracted domain
+  // // // console.log("User email domain:", userEmailDomain); // Check the extracted domain
   if (userEmailDomain === "yourcompany.com") {
     role = "admin"; // Assign admin role for specific email domain
-    // console.log("User role:", role); // Check the role being assigned
+    // // // console.log("User role:", role); // Check the role being assigned
   }
 
   try {
@@ -501,7 +523,7 @@ app.post("/create", limiter, async (req, res) => {
       .status(200)
       .json({ message: "User data saved to MongoDB", data: newUser });
   } catch (error) {
-    console.error("Error saving user data:", error);
+    // // // console.error("Error saving user data:", error);
     res.status(500).json({ message: "Error saving user data" });
   }
 });
@@ -561,7 +583,7 @@ app.get("/read", limiter, async (req, res) => {
     const data = await userModel.find();
     res.json(data);
   } catch (error) {
-    console.error("Error fetching data:", error); // Log error for debugging
+    // // // console.error("Error fetching data:", error); // Log error for debugging
     res.status(500).json({ message: "Failed to fetch data" });
   }
 });
@@ -587,7 +609,7 @@ app.put("/update/:id", limiter, async (req, res) => {
     }
     res.status(200).json({ message: "User data updated", data: updatedUser });
   } catch (error) {
-    console.error("Error updating user data:", error);
+    // // // console.error("Error updating user data:", error);
     res.status(500).json({ message: "Error updating user data" });
   }
 });
@@ -605,7 +627,7 @@ app.post("/delete/:id", limiter, async (req, res) => {
       .status(200)
       .json({ message: "User deleted successfully", data: deletedUser });
   } catch (error) {
-    console.error("Error deleting user:", error);
+    // // // // console.error("Error deleting user:", error);
     res.status(500).json({ message: "Error deleting user" });
   }
 });
@@ -629,7 +651,7 @@ app.post("/usernamedata", (req, res) => {
     res.json({ username });
   } catch (err) {
     // Handle token verification or decoding errors
-    console.error("Token verification error:", err);
+    // // // console.error("Token verification error:", err);
     res.status(401).json({ error: "Unauthorized" });
   }
 });
@@ -663,7 +685,7 @@ app.post("/createbranch", limiter, async (req, res) => {
       .status(200)
       .json({ message: "User data saved to MongoDB", data: newUser });
   } catch (error) {
-    console.error("Error saving user data:", error);
+    // // // console.error("Error saving user data:", error);
     res.status(500).json({ message: "Error saving user data" });
   }
 });
@@ -703,7 +725,7 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
       .status(200)
       .json({ message: "Branch updated successfully", data: updatedBranch });
   } catch (error) {
-    console.error("Error updating branch:", error);
+    // // // console.error("Error updating branch:", error);
     res.status(500).json({ message: "Error updating branch" });
   }
 });
@@ -721,7 +743,7 @@ app.post("/deletebranch/:id", limiter, async (req, res) => {
       .status(200)
       .json({ message: "Branch deleted successfully", data: deletedBranch });
   } catch (error) {
-    console.error("Error deleting branch:", error);
+    // // // console.error("Error deleting branch:", error);
     res.status(500).json({ message: "Error deleting branch" });
   }
 });
@@ -735,7 +757,7 @@ app.get("/readbranch", limiter, async (req, res) => {
       data: managerBranches,
     });
   } catch (error) {
-    console.error("Error retrieving manager branches:", error);
+    // // // console.error("Error retrieving manager branches:", error);
     res.status(500).json({ message: "Error retrieving manager branches" });
   }
 });
@@ -755,7 +777,7 @@ app.get("/getbranch/:id", async (req, res) => {
     // If the branch is found, send it as a response
     res.status(200).json(branch);
   } catch (error) {
-    console.error("Error retrieving branch:", error);
+    // // // console.error("Error retrieving branch:", error);
     res.status(500).json({ message: "Error retrieving branch" });
   }
 });
@@ -775,7 +797,7 @@ app.get("/branches/names", limiter, async (req, res) => {
       data: branchNames,
     });
   } catch (error) {
-    console.error("Error retrieving manager branch names:", error);
+    // // // console.error("Error retrieving manager branch names:", error);
     res.status(500).json({ message: "Error retrieving manager branch names" });
   }
 });
@@ -850,15 +872,21 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
 
     // Create a wallet using the provided walletid and shares
     const response = await walletModel.create({ walletId, numberOfShares });
-    console.log(response);
+    // // console.log(response);
 
     await newMember.save();
+
+    try {
+      await memberidsModel.create({ memberNo: memberNo });
+    } catch (error) {
+      // // console.error(error);
+    }
 
     res
       .status(200)
       .json({ message: "Member data saved to MongoDB", data: newMember });
   } catch (error) {
-    console.error("Error saving member data:", error);
+    // // console.error("Error saving member data:", error);
     res.status(500).json({ message: "Error saving member data" });
   }
 });
@@ -880,7 +908,7 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
 
     res.status(200).json({ url: result.secure_url });
   } catch (error) {
-    console.error("Error uploading image:", error);
+    // // console.error("Error uploading image:", error);
     res.status(500).json({ message: "Error uploading image" });
   }
 });
@@ -889,11 +917,11 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
 app.put("/updatemember/:id", async (req, res) => {
   const memberId = req.params.id;
 
-      // Fetch existing member details from the database
-      const existingMember = await memberModel.findById(memberId);
-      if (!existingMember) {
-        return res.status(404).json({ message: "Member not found" });
-      }
+  // Fetch existing member details from the database
+  const existingMember = await memberModel.findById(memberId);
+  if (!existingMember) {
+    return res.status(404).json({ message: "Member not found" });
+  }
 
   // Destructure the request body containing member details
   const {
@@ -961,7 +989,7 @@ app.put("/updatemember/:id", async (req, res) => {
       );
 
       idProofUrl = responseUpload.data.urls[0];
-    }    
+    }
 
     // Find and update member details in the database
     const updatedMember = await memberModel.findByIdAndUpdate(
@@ -998,7 +1026,7 @@ app.put("/updatemember/:id", async (req, res) => {
       .status(200)
       .json({ message: "Member updated successfully", data: updatedMember });
   } catch (error) {
-    console.error("Error updating member:", error);
+    // // console.error("Error updating member:", error);
     res.status(500).json({ message: "Error updating member" });
   }
 });
@@ -1016,7 +1044,7 @@ app.post("/deletemember/:id", limiter, async (req, res) => {
       .status(200)
       .json({ message: "Member deleted successfully", data: deletedMember });
   } catch (error) {
-    console.error("Error deleting member:", error);
+    // // console.error("Error deleting member:", error);
     res.status(500).json({ message: "Error deleting member" });
   }
 });
@@ -1030,7 +1058,7 @@ app.get("/readmembers", limiter, async (req, res) => {
       data: allMembers,
     });
   } catch (error) {
-    console.error("Error retrieving members:", error);
+    // // console.error("Error retrieving members:", error);
     res.status(500).json({ message: "Error retrieving members" });
   }
 });
@@ -1048,7 +1076,7 @@ app.get("/readmembersname", limiter, async (req, res) => {
       data: memberNames,
     });
   } catch (error) {
-    console.error("Error retrieving member names:", error);
+    // // console.error("Error retrieving member names:", error);
     res.status(500).json({ message: "Error retrieving member names" });
   }
 });
@@ -1066,7 +1094,7 @@ app.get("/readmemberids", limiter, async (req, res) => {
       data: memberIds,
     });
   } catch (error) {
-    console.error("Error retrieving member IDs:", error);
+    // // console.error("Error retrieving member IDs:", error);
     res.status(500).json({ message: "Error retrieving member IDs" });
   }
 });
@@ -1086,7 +1114,7 @@ app.get("/getmember/:id", async (req, res) => {
     // If the member is found, send it as a response
     res.status(200).json(member);
   } catch (error) {
-    console.error("Error retrieving member:", error);
+    // // console.error("Error retrieving member:", error);
     res.status(500).json({ message: "Error retrieving member" });
   }
 });
@@ -1122,11 +1150,17 @@ app.post("/createloan", limiter, async (req, res) => {
 
     await newLoan.save();
 
+    try {
+      await loanidModel.create({ loanId: loanId });
+    } catch (error) {
+      // // console.error(error);
+    }
+
     res
       .status(200)
       .json({ message: "Loan data saved to MongoDB", data: newLoan });
   } catch (error) {
-    console.error("Error saving loan data:", error);
+    // // console.error("Error saving loan data:", error);
     res.status(500).json({ message: "Error saving loan data" });
   }
 });
@@ -1171,7 +1205,7 @@ app.put("/updateloan/:id", limiter, async (req, res) => {
       .status(200)
       .json({ message: "Loan updated successfully", data: updatedLoan });
   } catch (error) {
-    console.error("Error updating loan:", error);
+    // // console.error("Error updating loan:", error);
     res.status(500).json({ message: "Error updating loan" });
   }
 });
@@ -1189,7 +1223,7 @@ app.delete("/deleteloan/:id", limiter, async (req, res) => {
       .status(200)
       .json({ message: "Loan deleted successfully", data: deletedLoan });
   } catch (error) {
-    console.error("Error deleting loan:", error);
+    // // console.error("Error deleting loan:", error);
     res.status(500).json({ message: "Error deleting loan" });
   }
 });
@@ -1203,7 +1237,7 @@ app.get("/loans", limiter, async (req, res) => {
       .status(200)
       .json({ message: "All loans retrieved successfully", data: allLoans });
   } catch (error) {
-    console.error("Error retrieving loans:", error);
+    // // console.error("Error retrieving loans:", error);
     res.status(500).json({ message: "Error retrieving loans" });
   }
 });
@@ -1221,7 +1255,7 @@ app.get("/loansbymember/:memberNo", limiter, async (req, res) => {
       data: loans,
     });
   } catch (error) {
-    console.error("Error retrieving loans:", error);
+    // // console.error("Error retrieving loans:", error);
     res.status(500).json({ message: "Error retrieving loans" });
   }
 });
@@ -1241,7 +1275,7 @@ app.get("/loans/:id", limiter, async (req, res) => {
       .status(200)
       .json({ message: "Loan retrieved successfully", data: loan });
   } catch (error) {
-    console.error("Error retrieving loan:", error);
+    // // console.error("Error retrieving loan:", error);
     res.status(500).json({ message: "Error retrieving loan" });
   }
 });
@@ -1257,7 +1291,7 @@ app.get("/loanmembers", limiter, async (req, res) => {
       data: memberNumbers,
     });
   } catch (error) {
-    console.error("Error retrieving member numbers:", error); // Log the specific error
+    // // console.error("Error retrieving member numbers:", error); // Log the specific error
     res.status(500).json({ message: "Error retrieving member numbers" });
   }
 });
@@ -1326,7 +1360,7 @@ app.get("/repayments", async (req, res) => {
       data: allRepayments,
     });
   } catch (error) {
-    console.error("Error retrieving repayment records:", error);
+    // // console.error("Error retrieving repayment records:", error);
     res.status(500).json({
       message: "Error retrieving repayment records",
       error: error.message,
@@ -1349,7 +1383,7 @@ app.get("/repayments/:id", async (req, res) => {
       data: repayment,
     });
   } catch (error) {
-    console.error("Error retrieving repayment record:", error);
+    // // console.error("Error retrieving repayment record:", error);
     res.status(500).json({
       message: "Error retrieving repayment record",
       error: error.message,
@@ -1416,7 +1450,7 @@ app.delete("/repayments/:id", async (req, res) => {
       data: deletedRepayment,
     });
   } catch (error) {
-    console.error("Error deleting repayment record:", error);
+    // // console.error("Error deleting repayment record:", error);
     res.status(500).json({
       message: "Error deleting repayment record",
       error: error.message,
@@ -1436,7 +1470,7 @@ app.get("/approvedLoans", async (req, res) => {
       data: approvedLoans,
     });
   } catch (error) {
-    console.error("Error fetching approved loans:", error);
+    // // console.error("Error fetching approved loans:", error);
     res.status(500).json({ message: "Error fetching approved loans" });
   }
 });
@@ -1445,6 +1479,11 @@ app.get("/approvedLoans", async (req, res) => {
 app.post("/createaccounts", async (req, res) => {
   try {
     const account = await AccountModel.create(req.body);
+    try {
+      await accountidModel.create({ accountNumber : account.accountNumber });
+    } catch (error) {
+      // // console.error(error);
+    }
     res.status(201).json(account);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -1461,7 +1500,7 @@ app.get("/accounts", async (req, res) => {
       data: allAccounts,
     });
   } catch (error) {
-    console.error("Error retrieving accounts:", error);
+    // // console.error("Error retrieving accounts:", error);
     res.status(500).json({ message: "Error retrieving accounts" });
   }
 });
@@ -1481,7 +1520,7 @@ app.get("/accounts/:id", async (req, res) => {
       .status(200)
       .json({ message: "Account retrieved successfully", data: account });
   } catch (error) {
-    console.error("Error retrieving account:", error);
+    // // console.error("Error retrieving account:", error);
     res.status(500).json({ message: "Error retrieving account" });
   }
 });
@@ -1508,7 +1547,7 @@ app.get("/accountids", limiter, async (req, res) => {
       data: numbers,
     });
   } catch (error) {
-    console.error("Error retrieving account numbers:", error);
+    // // console.error("Error retrieving account numbers:", error);
     res.status(500).json({ message: "Error retrieving account numbers" });
   }
 });
@@ -1593,8 +1632,8 @@ app.post("/transactions", async (req, res) => {
       description,
     });
 
-    // console.log('Current Balance:', account.currentBalance);
-    // console.log('transacation amount:', transactionAmount);
+    // // // console.log('Current Balance:', account.currentBalance);
+    // // // console.log('transacation amount:', transactionAmount);
     // // Before updating the balance, validate account.currentBalance is a valid number
     if (
       typeof account.currentBalance !== "number" ||
@@ -1642,7 +1681,7 @@ app.get("/transactions", async (req, res) => {
       data: allTransactions,
     });
   } catch (error) {
-    console.error("Error retrieving transactions:", error);
+    // // console.error("Error retrieving transactions:", error);
     res.status(500).json({ message: "Error retrieving transactions" });
   }
 });
@@ -1669,7 +1708,7 @@ app.get("/transactionsbymember/:id", async (req, res) => {
       data: transactions,
     });
   } catch (error) {
-    console.error("Error retrieving transactions:", error);
+    // // console.error("Error retrieving transactions:", error);
     res.status(500).json({ message: "Error retrieving transactions" });
   }
 });
@@ -1690,7 +1729,7 @@ app.get("/transactions/:id", async (req, res) => {
       data: transaction,
     });
   } catch (error) {
-    console.error("Error retrieving transaction:", error);
+    // // console.error("Error retrieving transaction:", error);
     res.status(500).json({ message: "Error retrieving transaction" });
   }
 });
@@ -1713,7 +1752,7 @@ app.delete("/transactions/:id", async (req, res) => {
       data: deletedTransaction,
     });
   } catch (error) {
-    console.error("Error deleting transaction:", error);
+    // // console.error("Error deleting transaction:", error);
     res.status(500).json({ message: "Error deleting transaction" });
   }
 });
@@ -1741,7 +1780,7 @@ app.put("/transactions/:id", async (req, res) => {
       data: updatedTransaction,
     });
   } catch (error) {
-    console.error("Error updating transaction:", error);
+    // // console.error("Error updating transaction:", error);
     res.status(500).json({ message: "Error updating transaction" });
   }
 });
@@ -1854,10 +1893,10 @@ app.post("/upload", upload.single("image"), async (req, res) => {
       resource_type: "auto", // Specify the resource type if necessary
     });
 
-    // console.log(result);
+    // // // console.log(result);
     // Get the Cloudinary URL of the uploaded image
     const imageUrl = result.secure_url;
-    // console.log(imageUrl);
+    // // // console.log(imageUrl);
 
     res.status(200).json({ url: imageUrl }); // Send the image URL back in the response
   } catch (error) {
@@ -1959,7 +1998,7 @@ app.put("/updateintuser/:id", limiter, async (req, res) => {
 
     res.status(200).json({ message: "User data updated", data: user });
   } catch (error) {
-    console.error("Error updating user data:", error);
+    // // console.error("Error updating user data:", error);
     res.status(500).json({ message: "Error updating user data" });
   }
 });
@@ -2259,7 +2298,7 @@ app.get("/countMembers", limiter, async (req, res) => {
 
     res.status(200).json({ count });
   } catch (error) {
-    console.error("Error counting members:", error);
+    // // console.error("Error counting members:", error);
     res.status(500).json({ message: "Error counting members" });
   }
 });
@@ -2274,7 +2313,7 @@ app.get("/depositRequestsPending", async (req, res) => {
 
     res.status(200).json({ count: depositRequestsPending });
   } catch (error) {
-    console.error("Error retrieving deposit requests pending:", error);
+    // // console.error("Error retrieving deposit requests pending:", error);
     res
       .status(500)
       .json({ message: "Error retrieving deposit requests pending" });
@@ -2291,7 +2330,7 @@ app.get("/withdrawRequestsPending", async (req, res) => {
 
     res.status(200).json({ count: withdrawRequestsPending });
   } catch (error) {
-    console.error("Error retrieving withdraw requests pending:", error);
+    // // console.error("Error retrieving withdraw requests pending:", error);
     res
       .status(500)
       .json({ message: "Error retrieving withdraw requests pending" });
@@ -2305,8 +2344,20 @@ app.get("/pendingLoans", async (req, res) => {
 
     res.status(200).json({ data: pendingLoans });
   } catch (error) {
-    console.error("Error retrieving pending loans:", error);
+    // // console.error("Error retrieving pending loans:", error);
     res.status(500).json({ message: "Error retrieving pending loans" });
+  }
+});
+
+// GET endpoint to fetch total number of loans
+app.get("/totalLoans", async (req, res) => {
+  try {
+    const totalLoans = await loansModel.countDocuments();
+
+    res.status(200).json({ totalLoans });
+  } catch (error) {
+    // // console.error("Error retrieving total number of loans:", error);
+    res.status(500).json({ message: "Error retrieving total number of loans" });
   }
 });
 
@@ -2331,7 +2382,7 @@ app.post("/getuseremailpassword", limiter, async (req, res) => {
     res.json({ email, password });
   } catch (err) {
     // Handle token verification or decoding errors
-    console.error("Token verification error:", err);
+    // // console.error("Token verification error:", err);
     res.status(401).json({ error: "Unauthorized" });
   }
 });
@@ -2344,7 +2395,7 @@ app.get("/randomgenMemberId", limiter, async (req, res) => {
     const random = Math.floor(Math.random() * 9000 + 1000);
     uniqueid = 51520000 + random;
 
-    const allMembers = await memberModel.find({}, "memberNo"); // Fetch only the 'memberNo' field
+    const allMembers = await memberidsModel.find({}, "memberNo"); // Fetch only the 'memberNo' field
     const memberIds = allMembers.map((member) => member.memberNo);
 
     if (!memberIds.includes(uniqueid)) {
@@ -2363,7 +2414,7 @@ app.get("/randomgenLoanId", limiter, async (req, res) => {
     const random = Math.floor(Math.random() * 9000 + 1000);
     uniqueid = 51530000 + random;
 
-    const allLoans = await loansModel.find({}, "loanId"); // Fetch only the 'loanId' field
+    const allLoans = await loanidModel.find({}, "loanId"); // Fetch only the 'loanId' field
     const loanIds = allLoans.map((loan) => loan.loanId);
 
     if (!loanIds.includes(uniqueid)) {
@@ -2382,7 +2433,7 @@ app.get("/randomgenAccountId", limiter, async (req, res) => {
     const random = Math.floor(Math.random() * 9000 + 1000);
     uniqueid = 51540000 + random;
 
-    const allAccounts = await AccountModel.find({}, "accountNumber"); // Fetch only the 'accountNumber' field
+    const allAccounts = await accountidModel.find({}, "accountNumber"); // Fetch only the 'accountNumber' field
     const accountNumbers = allAccounts.map((account) => account.accountNumber);
 
     if (!accountNumbers.includes(uniqueid)) {
@@ -2548,7 +2599,7 @@ app.get("/calculate-revenue", async (req, res) => {
 
     res.json({ monthlyRevenue });
   } catch (error) {
-    console.error("Error calculating revenue:", error);
+    // // console.error("Error calculating revenue:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -2598,7 +2649,7 @@ const calculateRevenue = async (year, month) => {
 
       resolve({ monthlyRevenue });
     } catch (error) {
-      console.error("Error calculating revenue:", error);
+      // // console.error("Error calculating revenue:", error);
       reject(new Error("Internal server error"));
     }
   });
@@ -2635,10 +2686,10 @@ app.get("/populate-revenue", async (req, res) => {
         try {
           const { monthlyRevenue } = await calculateRevenue(year, month);
         } catch (error) {
-          console.error(
-            `Error calculating revenue for ${year}-${month}:`,
-            error.message
-          );
+          // // // console.error(
+          //   `Error calculating revenue for ${year}-${month}:`,
+          //   error.message
+          // );
         }
       });
 
@@ -2650,7 +2701,7 @@ app.get("/populate-revenue", async (req, res) => {
 
     res.json({ message: "Revenue data population completed" });
   } catch (error) {
-    console.error("Error populating revenue data:", error);
+    // // console.error("Error populating revenue data:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -3026,7 +3077,9 @@ app.post(
       const accountNumber = Number(loan.account);
 
       // Fetch associated account using memberNo from loan
-      const account = await AccountModel.findOne({ accountNumber : accountNumber });
+      const account = await AccountModel.findOne({
+        accountNumber: accountNumber,
+      });
       if (!account) {
         return res.status(404).json({ message: "Account not found" });
       }
@@ -3060,10 +3113,10 @@ app.post(
           "Payment data updated and RepaymentDetails created successfully",
       });
     } catch (error) {
-      console.error(
-        "Error updating payment data and creating RepaymentDetails:",
-        error
-      );
+      // // console.error(
+      //   "Error updating payment data and creating RepaymentDetails:",
+      //   error
+      // );
       res.status(500).json({ message: "Server Error" });
     }
   }
@@ -3089,7 +3142,7 @@ app.get("/api/checkRepaymentExists/:loanId", async (req, res) => {
     const repaymentExistsForCurrentMonth = !!repayment;
     res.json({ exists: repaymentExistsForCurrentMonth });
   } catch (error) {
-    console.error("Error checking repayment data:", error);
+    // // console.error("Error checking repayment data:", error);
     res.status(500).json({ message: "Server Error" });
   }
 });
@@ -3111,7 +3164,7 @@ app.get("/repayments/:id/loanId", async (req, res) => {
       data: { repaymentId, loanId },
     });
   } catch (error) {
-    console.error("Error retrieving loan ID from repayment record:", error);
+    // // console.error("Error retrieving loan ID from repayment record:", error);
     res.status(500).json({
       message: "Error retrieving loan ID from repayment record",
       error: error.message,
@@ -3176,7 +3229,7 @@ app.post("/createagent", limiter, async (req, res) => {
       .status(200)
       .json({ message: "Agent data saved to MongoDB", data: newAgent });
   } catch (error) {
-    console.error("Error saving agent data:", error);
+    // // console.error("Error saving agent data:", error);
     res.status(500).json({ message: "Error saving agent data" });
   }
 });
@@ -3233,7 +3286,7 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     agent.mobile = mobile || agent.mobile;
     agent.nomineeName = nomineeName || agent.nomineeName;
     agent.nomineeRelationship =
-    nomineeRelationship || agent.nomineeRelationship;
+      nomineeRelationship || agent.nomineeRelationship;
     agent.nomineeDob = nomineeDob || agent.nomineeDob;
     agent.nomineeMobile = nomineeMobile || agent.nomineeMobile;
     agent.password = password || agent.password;
@@ -3246,7 +3299,7 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
 
     res.status(200).json({ message: "Agent data updated", data: agent });
   } catch (error) {
-    console.error("Error updating agent data:", error);
+    // // console.error("Error updating agent data:", error);
     res.status(500).json({ message: "Error updating agent data" });
   }
 });
@@ -3483,7 +3536,6 @@ app.get("/getAllUserImages", async (req, res) => {
   }
 });
 
-
 // Endpoint to update loan status to Approved
 app.put("/approveaccount/:accountId", async (req, res) => {
   const { accountId } = req.params;
@@ -3500,7 +3552,9 @@ app.put("/approveaccount/:accountId", async (req, res) => {
       return res.status(404).json({ message: "Account not found" });
     }
 
-    res.status(200).json({ message: "Account status updated to Approved", account });
+    res
+      .status(200)
+      .json({ message: "Account status updated to Approved", account });
   } catch (error) {
     res.status(500).json({
       message: "Error updating Account status to Approved",
@@ -3524,7 +3578,9 @@ app.put("/cancelaccount/:accountId", async (req, res) => {
       return res.status(404).json({ message: "Account not found" });
     }
 
-    res.status(200).json({ message: "Account status updated to Cancelled", account });
+    res
+      .status(200)
+      .json({ message: "Account status updated to Cancelled", account });
   } catch (error) {
     res.status(500).json({
       message: "Error updating Account status to Cancelled",
@@ -3533,20 +3589,20 @@ app.put("/cancelaccount/:accountId", async (req, res) => {
   }
 });
 
-app.get('/admin-databases', async (req, res) => {
+app.get("/admin-databases", async (req, res) => {
   try {
     // Find all databases where userType is 'admin'
-    const adminDatabases = await allusersModel.find().distinct('dbName');
+    const adminDatabases = await allusersModel.find().distinct("dbName");
 
     res.status(200).json({ databases: adminDatabases });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ message: 'Server Error' });
+    // // console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
 // GET endpoint to fetch databases based on a specific branchName
-app.get('/branch-databases/:objectId', async (req, res) => {
+app.get("/branch-databases/:objectId", async (req, res) => {
   try {
     const { objectId } = req.params; // Get the objectId from the route parameters
 
@@ -3561,18 +3617,18 @@ app.get('/branch-databases/:objectId', async (req, res) => {
         // Find all distinct 'dbName' values where branchName matches the document's branchName
         const branchDatabases = await allusersModel
           .find({ branchName }) // Find databases with the same branchName
-          .distinct('dbName');
+          .distinct("dbName");
 
         res.status(200).json({ databases: branchDatabases });
       } else {
-        res.status(404).json({ message: 'Document not found' });
+        res.status(404).json({ message: "Document not found" });
       }
     } else {
-      res.status(400).json({ message: 'Invalid ObjectId' });
+      res.status(400).json({ message: "Invalid ObjectId" });
     }
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ message: 'Server Error' });
+    // // console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
@@ -3582,10 +3638,15 @@ app.get("/userdetails/:databaseName", async (req, res) => {
 
   try {
     // Fetch name, email, and branchName based on the provided database name
-    const userDetails = await allusersModel.find({ dbName: databaseName }, { name: 1, email: 1, branchName: 1, _id: 0 });
+    const userDetails = await allusersModel.find(
+      { dbName: databaseName },
+      { name: 1, email: 1, branchName: 1, _id: 0 }
+    );
 
     if (userDetails.length === 0) {
-      return res.status(404).json({ message: "No user details found for the provided database name" });
+      return res.status(404).json({
+        message: "No user details found for the provided database name",
+      });
     }
 
     // Send the fetched user details as a JSON response
@@ -3612,30 +3673,114 @@ app.get("/switch-database/:dbName", async (req, res) => {
       .then(() => {
         // Event handling for successful connection
         mongoose.connection.on("connected", () => {
-          console.log("Connected to MongoDB(agent)");
+          // // console.log("Connected to MongoDB(agent)");
         });
 
         // Event handling for disconnection
         mongoose.connection.on("disconnected", () => {
-          console.log("Disconnected from MongoDB(agent)");
+          // // console.log("Disconnected from MongoDB(agent)");
         });
 
         // Event handling for error
         mongoose.connection.on("error", (err) => {
-          console.error("Connection error:", err);
+          // // console.error("Connection error:", err);
         });
       })
       .catch((err) => {
-        console.error("Error:", err);
+        // // console.error("Error:", err);
       });
 
     res.json({ message: "Database switched successfully" });
   } catch (error) {
-    console.error("Switch Database Error:", error);
+    // // console.error("Switch Database Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
+// Endpoint to get total due amount and total amount paid for this month
+app.get('/totals-this-month', async (req, res) => {
+  try {
+    // Get the current month and year
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // Month is zero-based, so add 1
+
+    // Calculate the start and end dates for the current month
+    const startOfMonth = new Date(currentYear, currentMonth - 1, 1); // Month is zero-based
+    const endOfMonth = new Date(currentYear, currentMonth, 0); // Get last day of the month
+
+    // Aggregate to calculate total due amount for this month from repaymentSchema
+    const totalDueAmountThisMonth = await repaymentModel.aggregate([
+      {
+        $match: {
+          dueDate: {
+            $gte: startOfMonth,
+            $lte: endOfMonth,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalDueAmount: { $sum: '$dueAmount' },
+        },
+      },
+    ]);
+
+    // Aggregate to calculate total amount paid for this month from repaymentDetailsSchema
+    const totalAmountPaidThisMonth = await RepaymentDetails.aggregate([
+      {
+        $match: {
+          paymentDate: {
+            $gte: startOfMonth,
+            $lte: endOfMonth,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmountPaid: { $sum: '$dueAmountPaid' },
+        },
+      },
+    ]);
+
+    const result = {
+      totalDueAmountThisMonth: totalDueAmountThisMonth.length > 0 ? totalDueAmountThisMonth[0].totalDueAmount : 0,
+      totalAmountPaidThisMonth: totalAmountPaidThisMonth.length > 0 ? totalAmountPaidThisMonth[0].totalAmountPaid : 0,
+    };
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint to fetch repaymentDetails data with populated Member Name from AccountModel
+app.get("/recentCollection", async (req, res) => {
+  try {
+    const repaymentDetails = await RepaymentDetails.find({})
+      .lean();
+
+    // Retrieve memberName from AccountModel using accountId
+    const formattedData = await Promise.all(repaymentDetails.map(async (detail) => {
+    const account = await AccountModel.findOne({ accountId: repaymentDetails.accountId }).lean();
+      return {
+        Date: detail.paymentDate,
+        "Member Name": account ? account.memberName : 'N/A', // If account or memberName is not found, set as 'N/A'
+        "Account Number": detail.accountId,
+        Amount: detail.dueAmountPaid,
+        Status: (detail.dueAmountPaid > 0) ? 'Paid' : 'Unpaid'
+      };
+    }));
+
+    res.status(200).json({ RecentCollection: formattedData });
+  } catch (error) {
+    // // console.error("Error retrieving recent collection data:", error);
+    res.status(500).json({ message: "Error retrieving recent collection data" });
+  }
+});
+
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  // // console.log(`Server is running on port ${PORT}`);
 });
