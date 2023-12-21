@@ -34,7 +34,7 @@ app.use(bodyParser.json());
 
 // Allow requests from specific origins
 // const allowedOrigins = ['http://localhost:3000']; 
-const allowedOrigins = ['https://swastikcredit.in'];
+const allowedOrigins = ['https://admin.swastikcredit.in/'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
