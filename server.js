@@ -31,7 +31,22 @@ const app = express();
 const PORT = 3001;
 
 app.use(bodyParser.json());
-app.use(cors());
+
+// Allow requests from specific origins
+// const allowedOrigins = ['http://localhost:3000']; 
+const allowedOrigins = ['https://swastikcredit.in'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+};
+
+// Use CORS middleware with options
+app.use(cors(corsOptions));
 
 const memberSchema = new mongoose.Schema(
   {
