@@ -32,8 +32,8 @@ const PORT = 3001;
 
 app.use(bodyParser.json());
 
+// Production
 // Allow requests from specific origins
-// const allowedOrigins = ['http://localhost:3000']; 
 const allowedOrigins = ['https://admin.swastikcredit.in'];
 const corsOptions = {
   origin: function (origin, callback) {
@@ -47,6 +47,9 @@ const corsOptions = {
 
 // Use CORS middleware with options
 app.use(cors(corsOptions));
+
+// Development
+// app.use(cors());
 
 const memberSchema = new mongoose.Schema(
   {
@@ -844,9 +847,8 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
 
   // Check if there is an uploaded image
   if (req.file) {
-    const base64String = `data:${
-      req.file.mimetype
-    };base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${req.file.mimetype
+      };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -913,9 +915,8 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const base64String = `data:${
-      req.file.mimetype
-    };base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${req.file.mimetype
+      };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -1495,7 +1496,7 @@ app.post("/createaccounts", async (req, res) => {
   try {
     const account = await AccountModel.create(req.body);
     try {
-      await accountidModel.create({ accountNumber : account.accountNumber });
+      await accountidModel.create({ accountNumber: account.accountNumber });
     } catch (error) {
       // // console.error(error);
     }
@@ -1865,10 +1866,6 @@ app.delete("/expenses/:id", async (req, res) => {
 
 app.post("/uploadmultiple", upload.array("images", 2), async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "No files uploaded" });
-    }
-
     const promises = req.files.map(async (file) => {
       const base64String = `data:${file.mimetype};base64,${file.buffer.toString(
         "base64"
@@ -1900,9 +1897,8 @@ app.post("/upload", upload.single("image"), async (req, res) => {
     }
 
     // Convert the buffer to a base64 data URL
-    const base64String = `data:${
-      req.file.mimetype
-    };base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${req.file.mimetype
+      };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -2565,59 +2561,74 @@ app.get("/calculate-revenue", async (req, res) => {
   try {
     const { year, month } = req.query;
 
-    if (!year || !month) {
+    if (!year) {
       return res.status(400).json({
-        error: "Please provide both year and month in the query parameters.",
+        error: "Please provide the year in the query parameters.",
       });
     }
 
-    const startDate = new Date(year, month - 1, 1); // Month in JavaScript Date starts from 0 (January)
-    const endDate = new Date(year, month, 0); // To get the last day of the month
+    let startMonth = 1;
+    let endMonth = 12;
 
-    let monthlyRevenue = 0;
+    if (month && !isNaN(parseInt(month)) && month >= 1 && month <= 12) {
+      // If month is specified and valid, calculate revenue for that specific month
+      startMonth = parseInt(month);
+      endMonth = parseInt(month);
+    }
 
-    const activeLoans = await loansModel
-      .find({
+    let totalRevenue = 0;
+
+    for (let currMonth = startMonth; currMonth <= endMonth; currMonth++) {
+      const startDate = new Date(year, currMonth - 1, 1); // Month in JavaScript Date starts from 0 (January)
+      const endDate = new Date(year, currMonth, 0); // To get the last day of the month
+
+      // Set the end date to the end of the day to include the full month
+      endDate.setHours(23, 59, 59, 999);
+
+      let monthlyRevenue = 0;
+
+      const activeLoans = await loansModel.find({
         $or: [
           {
             $and: [
               { releaseDate: { $lte: endDate } },
-              { endDate: { $gte: startDate } },
+              {
+                $or: [
+                  { endDate: { $gte: startDate, $lte: endDate } }, // Consider year for endDate
+                  { endDate: { $exists: false } },
+                ],
+              },
             ],
           },
           {
             $and: [
-              { releaseDate: { $gte: startDate } },
+              { releaseDate: { $gte: startDate, $lte: endDate } }, // Consider year for releaseDate
               { endDate: { $exists: false } },
             ],
           },
         ],
-      })
-      .select("loanId");
+      }).select("loanId");
 
-    const loanIds = activeLoans.map((loan) => loan.loanId);
+      const loanIds = activeLoans.map((loan) => loan.loanId);
 
-    for (const loanId of loanIds) {
-      const repayments = await repaymentModel.find({ loanId });
-      for (const repayment of repayments) {
-        const { dueAmount, interest } = repayment;
-        monthlyRevenue += dueAmount * (interest / 100);
+      for (const loanId of loanIds) {
+        const repayments = await repaymentModel.find({ loanId });
+        for (const repayment of repayments) {
+          const { dueAmount, interest } = repayment;
+          monthlyRevenue += dueAmount * (interest / 100);
+        }
       }
+
+      totalRevenue += monthlyRevenue;
     }
 
-    // Store or update monthly revenue for the given year and month
-    const filter = { year, month };
-    const update = { year, month, monthlyRevenue };
-    const options = { upsert: true, new: true };
-
-    await Revenue.findOneAndUpdate(filter, update, options);
-
-    res.json({ monthlyRevenue });
+    res.json({ year, totalRevenue });
   } catch (error) {
-    // // console.error("Error calculating revenue:", error);
+    // console.error("Error calculating revenue:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 const calculateRevenue = async (year, month) => {
   return new Promise(async (resolve, reject) => {
@@ -3102,8 +3113,13 @@ app.post(
       account.currentBalance -= repayment.dueAmount;
       repayment.totalAmount -= repayment.dueAmount;
       repayment.paymentDate = new Date(); // Set payment date to current date or the date of payment
-      repayment.dueDate = new Date(); // Set it to the current date
-      repayment.dueDate.setMonth(repayment.dueDate.getMonth() + 1); // Increase by one month
+
+      // Calculate the next due date by adding a month to the current due date
+      const dueDate = new Date(repayment.dueDate); // Clone the current due date
+      dueDate.setMonth(dueDate.getMonth() + 1);
+
+      // Update the repayment due date
+      repayment.dueDate = dueDate;
 
       if (loan.endDate <= repayment.dueDate) {
         repayment.loanRepaymentStatus = "completed";
@@ -3779,7 +3795,7 @@ app.get("/recentCollection", async (req, res) => {
 
     // Retrieve memberName from AccountModel using accountId
     const formattedData = await Promise.all(repaymentDetails.map(async (detail) => {
-    const account = await AccountModel.findOne({ accountId: repaymentDetails.accountId }).lean();
+      const account = await AccountModel.findOne({ accountId: repaymentDetails.accountId }).lean();
       return {
         Date: detail.paymentDate,
         "Member Name": account ? account.memberName : 'N/A', // If account or memberName is not found, set as 'N/A'
