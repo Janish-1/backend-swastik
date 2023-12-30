@@ -82,6 +82,8 @@ const loanSchema = new mongoose.Schema(
     loanProduct: { type: String, required: true },
     memberName: { type: String, required: true },
     memberNo: { type: Number, required: true },
+    pan: {type: String,required: true},
+    aadhar: {type: String,required: true},
     releaseDate: { type: Date, required: true },
     appliedAmount: { type: Number, required: true },
     status: { type: String, required: true },
@@ -200,6 +202,7 @@ const expenseSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     reference: { type: String, required: true },
     note: { type: String, required: true },
+    branchName: {type: String, required: true},
   },
   { collection: "expenses" }
 );
@@ -260,6 +263,7 @@ const userdetailsSchema = new mongoose.Schema(
     nomineeMobile: { type: String },
     photo: { type: String },
     memberNo: { type: Number },
+    branchCode: {type: Number },
   },
   { collection: "allusers" }
 );
@@ -684,6 +688,7 @@ app.post("/createbranch", limiter, async (req, res) => {
     contactphone,
     branchaddress,
     userType,
+    branchCode
   } = req.body;
 
   try {
@@ -695,6 +700,7 @@ app.post("/createbranch", limiter, async (req, res) => {
       contactphone,
       branchaddress,
       userType: "manager", // Set userType to 'manager'
+      branchCode,
     });
 
     await newUser.save();
@@ -1142,6 +1148,8 @@ app.post("/createloan", limiter, async (req, res) => {
     loanProduct,
     memberName,
     memberNo,
+    pan,
+    aadhar,
     releaseDate,
     appliedAmount,
     status,
@@ -1156,6 +1164,8 @@ app.post("/createloan", limiter, async (req, res) => {
       loanProduct,
       memberName,
       memberNo,
+      pan,
+      aadhar,
       releaseDate,
       appliedAmount,
       status,
@@ -1189,6 +1199,8 @@ app.put("/updateloan/:id", limiter, async (req, res) => {
     memberName,
     memberNo,
     releaseDate,
+    pan,
+    aadhar,
     appliedAmount,
     status,
     account,
@@ -1203,6 +1215,8 @@ app.put("/updateloan/:id", limiter, async (req, res) => {
         loanProduct,
         memberName,
         memberNo,
+        pan,
+        aadhar,    
         releaseDate,
         appliedAmount,
         status,
@@ -1804,13 +1818,14 @@ app.put("/transactions/:id", async (req, res) => {
 // Create Expense
 app.post("/expenses", async (req, res) => {
   try {
-    const { date, category, amount, reference, note } = req.body;
+    const { date, category, amount, reference, note, branchName } = req.body;
     const newExpense = new ExpenseModel({
       date,
       category,
       amount,
       reference,
       note,
+      branchName,
     });
     const savedExpense = await newExpense.save();
     res.status(201).json(savedExpense);
@@ -2399,22 +2414,19 @@ app.post("/getuseremailpassword", limiter, async (req, res) => {
 });
 
 app.get("/randomgenMemberId", limiter, async (req, res) => {
-  let isUniqueIdFound = false;
-  let uniqueid;
+  const startingNumber = 52; // Starting number
+  const randomNumber = Math.floor(Math.random() * 100000); // Generate a random number
 
-  while (!isUniqueIdFound) {
-    const random = Math.floor(Math.random() * 9000 + 1000);
-    uniqueid = 51520000 + random;
+  const uniqueid = `00000052${randomNumber.toString().padStart(5, '0')}`;
 
-    const allMembers = await memberidsModel.find({}, "memberNo"); // Fetch only the 'memberNo' field
-    const memberIds = allMembers.map((member) => member.memberNo);
+  const allMembers = await memberidsModel.find({}, "memberNo");
+  const memberIds = allMembers.map((member) => member.memberNo);
 
-    if (!memberIds.includes(uniqueid)) {
-      isUniqueIdFound = true;
-    }
+  if (!memberIds.includes(uniqueid)) {
+    res.json({ uniqueid });
+  } else {
+    res.status(500).json({ error: "Generated ID already exists" });
   }
-
-  res.json({ uniqueid });
 });
 
 app.get("/randomgenLoanId", limiter, async (req, res) => {
@@ -2441,10 +2453,29 @@ app.get("/randomgenAccountId", limiter, async (req, res) => {
   let uniqueid;
 
   while (!isUniqueIdFound) {
-    const random = Math.floor(Math.random() * 9000 + 1000);
-    uniqueid = 51540000 + random;
+    const random = Math.floor(Math.random() * 90000) + 10000; // Generates a random 5-digit number
+    uniqueid = "2180" + random.toString(); // Combines '2180' with the random 5-digit number
 
-    const allAccounts = await accountidModel.find({}, "accountNumber"); // Fetch only the 'accountNumber' field
+    const allAccounts = await accountidModel.find({}, "accountNumber");
+    const accountNumbers = allAccounts.map((account) => account.accountNumber);
+
+    if (!accountNumbers.includes(uniqueid)) {
+      isUniqueIdFound = true;
+    }
+  }
+
+  res.json({ uniqueid });
+});
+
+app.get("/randomgenbranchCode", limiter, async (req, res) => {
+  let isUniqueIdFound = false;
+  let uniqueid;
+
+  while (!isUniqueIdFound) {
+    const random = Math.floor(Math.random() * 90000) + 10000; // Generates a random 5-digit number
+    uniqueid = "2180" + random.toString(); // Combines '2180' with the random 5-digit number
+
+    const allAccounts = await allusersModel.find({}, "branchCode");
     const accountNumbers = allAccounts.map((account) => account.accountNumber);
 
     if (!accountNumbers.includes(uniqueid)) {
@@ -3659,6 +3690,39 @@ app.get("/branch-databases/:objectId", async (req, res) => {
     }
   } catch (error) {
     // // console.error("Error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// GET endpoint to fetch manager and agents based on a specific branchName obtained from an objectId
+app.get("/branch-users/:objectId", async (req, res) => {
+  try {
+    const { objectId } = req.params; // Get the objectId from the route parameters
+
+    // Find a document by the provided objectId
+    const document = await allusersModel.findOne({ _id: objectId });
+
+    if (document) {
+      const branchName = document.branchName;
+
+      if (branchName) {
+        // Find the manager for the specific branch
+        const manager = await allusersModel.findOne({ branchName, userType: "manager" });
+
+        // Find all agents under the specific branch
+        const agents = await allusersModel.find({ branchName, userType: "agent" });
+
+        // Combine manager and agents into a single array
+        const branchUsers = [manager, ...agents];
+
+        res.status(200).json({ branch: branchName, users: branchUsers });
+      } else {
+        res.status(404).json({ message: "Branch not found" });
+      }
+    } else {
+      res.status(404).json({ message: "Document not found" });
+    }
+  } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }
 });
