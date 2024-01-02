@@ -18,7 +18,8 @@ dotenv.config({ path: envPath });
 
 require("dotenv").config(); // Load environment variables from .env file
 
-const uri = process.env.MONGODB_URI;
+const uri = 'mongodb+srv://swastikcredit8:swastik001@cluster0.g5uzyvg.mongodb.net/?retryWrites=true&w=majority';
+
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -3877,5 +3878,5 @@ app.get("/recentCollection", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  // // console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
