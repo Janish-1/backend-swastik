@@ -21,7 +21,7 @@ require("dotenv").config(); // Load environment variables from .env file
 // // Development
 // const uri = process.env.MONGODB_URI;
 
-Production
+// Production
 const uri = process.env.MONGODB_URI;
 
 // Configure Cloudinary
