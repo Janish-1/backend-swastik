@@ -18,7 +18,11 @@ dotenv.config({ path: envPath });
 
 require("dotenv").config(); // Load environment variables from .env file
 
-const uri = 'mongodb+srv://swastikcredit8:swastik001@cluster0.g5uzyvg.mongodb.net/?retryWrites=true&w=majority';
+// // Development
+// const uri = process.env.MONGODB_URI;
+
+Production
+const uri = process.env.MONGODB_URI;
 
 // Configure Cloudinary
 cloudinary.config({
@@ -49,7 +53,7 @@ const corsOptions = {
 // Use CORS middleware with options
 app.use(cors(corsOptions));
 
-// Development
+// // Development
 // app.use(cors());
 
 const memberSchema = new mongoose.Schema(
@@ -72,7 +76,8 @@ const memberSchema = new mongoose.Schema(
     nomineeMobileNo: { type: Number },
     nomineeDateOfBirth: { type: Date },
     walletId: { type: Number, required: true, unique: true },
-    numberOfShares: { type: Number },
+    numberOShares: { type: Number },
+    signature: { type: String , required:true},
   },
   { collection: "members" }
 );
@@ -83,8 +88,8 @@ const loanSchema = new mongoose.Schema(
     loanProduct: { type: String, required: true },
     memberName: { type: String, required: true },
     memberNo: { type: Number, required: true },
-    pan: {type: String,required: true},
-    aadhar: {type: String,required: true},
+    pan: { type: String, required: true },
+    aadhar: { type: String, required: true },
     releaseDate: { type: Date, required: true },
     appliedAmount: { type: Number, required: true },
     status: { type: String, required: true },
@@ -203,7 +208,7 @@ const expenseSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     reference: { type: String, required: true },
     note: { type: String, required: true },
-    branchName: {type: String, required: true},
+    branchName: { type: String, required: true },
   },
   { collection: "expenses" }
 );
@@ -264,7 +269,7 @@ const userdetailsSchema = new mongoose.Schema(
     nomineeMobile: { type: String },
     photo: { type: String },
     memberNo: { type: Number },
-    branchCode: {type: Number },
+    branchCode: { type: Number },
   },
   { collection: "allusers" }
 );
@@ -483,6 +488,7 @@ app.post("/all-login", limiter, async (req, res) => {
       username: user.name, // Make sure to replace this with the correct user field for username
       role: user.userType,
       db: user.dbName,
+      branch: user.branchName,
       // Add other necessary user information to the payload
     };
     const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
@@ -572,7 +578,7 @@ app.post("/login", limiter, async (req, res) => {
       email: user.email,
       username: user.firstName,
       password: user.password,
-      // Add other necessary user information to the payload
+      branch: user.branchName,
     };
 
     const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" }); // Set your own secret key and expiration time
@@ -682,6 +688,7 @@ app.post("/usernamedata", (req, res) => {
 // Create Function for Account
 app.post("/createbranch", limiter, async (req, res) => {
   const {
+    branchCode,
     branchName,
     name,
     email,
@@ -689,7 +696,6 @@ app.post("/createbranch", limiter, async (req, res) => {
     contactphone,
     branchaddress,
     userType,
-    branchCode
   } = req.body;
 
   try {
@@ -718,6 +724,7 @@ app.post("/createbranch", limiter, async (req, res) => {
 app.put("/updatebranch/:id", limiter, async (req, res) => {
   const branchId = req.params.id;
   const {
+    branchCode,
     branchName,
     name,
     email,
@@ -731,6 +738,7 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
     const updatedBranch = await allusersModel.findByIdAndUpdate(
       branchId,
       {
+        branchCode,
         branchName,
         name,
         email,
@@ -848,6 +856,7 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
     nomineeDateOfBirth,
     walletId,
     numberOfShares,
+    signature,
   } = req.body;
 
   let imageUrl = ""; // Initialize imageUrl variable
@@ -885,6 +894,7 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
       nomineeDateOfBirth,
       walletId,
       numberOfShares,
+      signature,
     });
 
     // Check if walletid and shares are provided in the request body
@@ -967,6 +977,7 @@ app.put("/updatemember/:id", async (req, res) => {
     numberOfShares,
     photo,
     idProof,
+    signature,
   } = req.body;
 
   try {
@@ -1037,6 +1048,7 @@ app.put("/updatemember/:id", async (req, res) => {
         numberOfShares,
         photo: photoUrl,
         idProof: idProofUrl,
+        signature,
       },
       { new: true }
     );
@@ -1217,7 +1229,7 @@ app.put("/updateloan/:id", limiter, async (req, res) => {
         memberName,
         memberNo,
         pan,
-        aadhar,    
+        aadhar,
         releaseDate,
         appliedAmount,
         status,
@@ -2415,15 +2427,15 @@ app.post("/getuseremailpassword", limiter, async (req, res) => {
 });
 
 app.get("/randomgenMemberId", limiter, async (req, res) => {
-  const startingNumber = 52; // Starting number
-  const randomNumber = Math.floor(Math.random() * 100000); // Generate a random number
+  const min = 52; // Minimum number (52)
+  const max = 9999999999; // Maximum number (9999999999)
+  const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min; // Generate a random number within the specified range
 
-  const uniqueid = `00000052${randomNumber.toString().padStart(5, '0')}`;
+  const uniqueid = randomNumber.toString().padStart(10, '0'); // Format the number to have at least 10 digits
 
-  const allMembers = await memberidsModel.find({}, "memberNo");
-  const memberIds = allMembers.map((member) => member.memberNo);
+  const existingMember = await memberidsModel.findOne({ memberNo: uniqueid }, "memberNo");
 
-  if (!memberIds.includes(uniqueid)) {
+  if (!existingMember) {
     res.json({ uniqueid });
   } else {
     res.status(500).json({ error: "Generated ID already exists" });
@@ -2435,8 +2447,8 @@ app.get("/randomgenLoanId", limiter, async (req, res) => {
   let uniqueid;
 
   while (!isUniqueIdFound) {
-    const random = Math.floor(Math.random() * 9000 + 1000);
-    uniqueid = 51530000 + random;
+    const random = Math.floor(Math.random() * 900000 + 100000);
+    uniqueid = 5153000000 + random;
 
     const allLoans = await loanidModel.find({}, "loanId"); // Fetch only the 'loanId' field
     const loanIds = allLoans.map((loan) => loan.loanId);
@@ -2454,8 +2466,8 @@ app.get("/randomgenAccountId", limiter, async (req, res) => {
   let uniqueid;
 
   while (!isUniqueIdFound) {
-    const random = Math.floor(Math.random() * 90000) + 10000; // Generates a random 5-digit number
-    uniqueid = "2180" + random.toString(); // Combines '2180' with the random 5-digit number
+    const random = Math.floor(Math.random() * 9000000) + 1000000; // Generates a random 6-digit number
+    uniqueid = "2180" + random.toString(); // Combines '2180' with the random 6-digit number
 
     const allAccounts = await accountidModel.find({}, "accountNumber");
     const accountNumbers = allAccounts.map((account) => account.accountNumber);
@@ -2492,7 +2504,7 @@ app.get("/randomgenWalletId", limiter, async (req, res) => {
   let uniqueWalletId;
 
   while (!isUniqueWalletIdFound) {
-    const random = Math.floor(Math.random() * 90000 + 10000); // Generate a random 5-digit number
+    const random = Math.floor(Math.random() * 900000 + 100000); // Generate a random 5-digit number
     uniqueWalletId = random;
 
     // Check if the generated wallet ID already exists in the database
@@ -3874,6 +3886,25 @@ app.get("/recentCollection", async (req, res) => {
   } catch (error) {
     // // console.error("Error retrieving recent collection data:", error);
     res.status(500).json({ message: "Error retrieving recent collection data" });
+  }
+});
+
+app.post("/uploadsignature", async (req, res) => {
+  try {
+    const { imageData } = req.body; // Assuming the base64 string is sent in the 'imageData' field
+
+    if (!imageData) {
+      return res.status(400).json({ message: "No image data provided" });
+    }
+
+    const result = await cloudinary.uploader.upload(imageData, {
+      resource_type: "auto", // Specify the resource type if necessary
+    });
+
+    res.status(200).json({ url: result.secure_url });
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    res.status(500).json({ message: "Error uploading image" });
   }
 });
 
