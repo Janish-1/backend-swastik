@@ -39,7 +39,7 @@ app.use(bodyParser.json());
 
 // Production
 // Allow requests from specific origins
-const allowedOrigins = ['https://admin.swastikcredit.in'];
+const allowedOrigins = ['https://admin.swastikcredit.in','http://admin.swastikcredit.in'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
@@ -1535,17 +1535,17 @@ app.post("/createaccounts", async (req, res) => {
 
 // GET endpoint to fetch all accounts
 app.get("/accounts", async (req, res) => {
-  // try {
+  try {
     const allAccounts = await AccountModel.find();
 
     res.status(200).json({
       message: "All accounts retrieved successfully",
       data: allAccounts,
     });
-  // } catch (error) {
-  //   // // console.error("Error retrieving accounts:", error);
-  //   res.status(500).json({ message: "Error retrieving accounts" });
-  // }
+  } catch (error) {
+    // // console.error("Error retrieving accounts:", error);
+    res.status(500).json({ message: "Error retrieving accounts" });
+  }
 });
 
 // GET endpoint to fetch a specific account by its ID
