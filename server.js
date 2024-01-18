@@ -325,41 +325,29 @@ const memberidsModel = loginDB.model("membersids", memberids);
 const loanidModel = loginDB.model("loanids", loanids);
 const accountidModel = loginDB.model("accountids", accountids);
 
-// // Multer configuration for handling file uploads
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "uploads"); // Uploads directory where files will be stored
-//   },
-//   filename: (req, file, cb) => {
-//     const uniqueSuffix = `${Date.now()}-${uuidv4()}`;
-//     const fileExtension = path.extname(file.originalname);
-//     cb(null, `${uniqueSuffix}${fileExtension}`);
-//   },
-// });
-
 // Multer storage configuration
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// // Set security headers
-// app.use((req, res, next) => {
-//   res.setHeader("X-Content-Type-Options", "nosniff");
-//   res.setHeader("X-XSS-Protection", "1; mode=block");
-//   res.setHeader("X-Frame-Options", "deny");
-//   res.setHeader(
-//     "Strict-Transport-Security",
-//     "max-age=31536000; includeSubDomains; preload"
-//   );
-//   next();
-// });
+// Set security headers
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("X-Frame-Options", "deny");
+  res.setHeader(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains; preload"
+  );
+  next();
+});
 
-// // Implement rate limiting (example using 'express-rate-limit' middleware)
-// const rateLimit = require("express-rate-limit");
+// Implement rate limiting (example using 'express-rate-limit' middleware)
+const rateLimit = require("express-rate-limit");
 
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 1000, // limit each IP to 100 requests per windowMs
-// });
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // limit each IP to 100 requests per windowMs
+});
 
 app.post("/all-login", async (req, res) => {
   const { email, password } = req.body;
@@ -1093,8 +1081,23 @@ app.get("/readmembers", async (req, res) => {
       data: allMembers,
     });
   } catch (error) {
-    // // console.error("Error retrieving members:", error);
-    res.status(500).json({ message: "Error retrieving members" });
+    console.error("Error retrieving members:", error);
+
+    // Check if the error is a MongoDB validation error
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: "Validation error while retrieving members",
+        error: error.message, // Include the specific validation error message
+      });
+    }
+
+    // Handle other specific types of errors if needed...
+
+    // If it's not a specific type of error, provide a generic error message
+    res.status(500).json({
+      message: "Error retrieving members",
+      error: error.message, // Include the specific error message
+    });
   }
 });
 
