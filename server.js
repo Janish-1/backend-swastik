@@ -39,7 +39,7 @@ app.use(bodyParser.json());
 
 // Production
 // Allow requests from specific origins
-const allowedOrigins = ['https://admin.swastikcredit.in','http://admin.swastikcredit.in'];
+const allowedOrigins = ['https://admin.swastikcredit.in', 'http://admin.swastikcredit.in'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
@@ -77,7 +77,7 @@ const memberSchema = new mongoose.Schema(
     nomineeDateOfBirth: { type: Date },
     walletId: { type: Number, required: true, unique: true },
     numberOShares: { type: Number },
-    signature: { type: String , required:true},
+    signature: { type: String, required: true },
   },
   { collection: "members" }
 );
@@ -1083,15 +1083,8 @@ app.get("/readmembers", async (req, res) => {
   } catch (error) {
     console.error("Error retrieving members:", error);
 
-    // Check if the error is a MongoDB validation error
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        message: "Validation error while retrieving members",
-        error: error.message, // Include the specific validation error message
-      });
-    }
-
-    // Handle other specific types of errors if needed...
+    // Log the error to a file
+    logError(error);
 
     // If it's not a specific type of error, provide a generic error message
     res.status(500).json({
@@ -1100,6 +1093,17 @@ app.get("/readmembers", async (req, res) => {
     });
   }
 });
+
+function logError(error) {
+  const errorMessage = `${new Date().toISOString()} - ${error.stack}\n`;
+
+  // Append the error message to the error.log file
+  fs.appendFile('error.log', errorMessage, (err) => {
+    if (err) {
+      console.error('Error writing to error.log:', err);
+    }
+  });
+}
 
 app.get("/readmembersname", async (req, res) => {
   try {
