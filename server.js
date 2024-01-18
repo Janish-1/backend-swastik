@@ -353,15 +353,15 @@ const upload = multer({ storage: storage });
 //   next();
 // });
 
-// Implement rate limiting (example using 'express-rate-limit' middleware)
-const rateLimit = require("express-rate-limit");
+// // Implement rate limiting (example using 'express-rate-limit' middleware)
+// const rateLimit = require("express-rate-limit");
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // limit each IP to 100 requests per windowMs
-});
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 1000, // limit each IP to 100 requests per windowMs
+// });
 
-app.post("/all-login", limiter, async (req, res) => {
+app.post("/all-login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -501,7 +501,7 @@ app.post("/all-login", limiter, async (req, res) => {
 });
 
 // Create Function for User
-app.post("/create", limiter, async (req, res) => {
+app.post("/create", async (req, res) => {
   const {
     firstName,
     lastName,
@@ -557,7 +557,7 @@ app.post("/create", limiter, async (req, res) => {
   }
 });
 
-app.post("/login", limiter, async (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -606,7 +606,7 @@ app.get("/verify-token", (req, res) => {
 });
 
 // Read Function
-app.get("/read", limiter, async (req, res) => {
+app.get("/read", async (req, res) => {
   try {
     // Fetch Data From Collection
     const data = await userModel.find();
@@ -619,7 +619,7 @@ app.get("/read", limiter, async (req, res) => {
 
 // Assuming you have already set up your app and UserModel as described above
 
-app.put("/update/:id", limiter, async (req, res) => {
+app.put("/update/:id", async (req, res) => {
   const { id } = req.params;
   const { firstName, lastName, email, password, role, security } = req.body;
 
@@ -643,7 +643,7 @@ app.put("/update/:id", limiter, async (req, res) => {
   }
 });
 
-app.post("/delete/:id", limiter, async (req, res) => {
+app.post("/delete/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const deletedUser = await userModel.findByIdAndDelete(id);
@@ -686,7 +686,7 @@ app.post("/usernamedata", (req, res) => {
 });
 
 // Create Function for Account
-app.post("/createbranch", limiter, async (req, res) => {
+app.post("/createbranch", async (req, res) => {
   const {
     branchCode,
     branchName,
@@ -721,7 +721,7 @@ app.post("/createbranch", limiter, async (req, res) => {
   }
 });
 
-app.put("/updatebranch/:id", limiter, async (req, res) => {
+app.put("/updatebranch/:id", async (req, res) => {
   const branchId = req.params.id;
   const {
     branchCode,
@@ -763,7 +763,7 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
   }
 });
 
-app.post("/deletebranch/:id", limiter, async (req, res) => {
+app.post("/deletebranch/:id", async (req, res) => {
   const branchId = req.params.id;
   try {
     const deletedBranch = await allusersModel.findByIdAndDelete(branchId);
@@ -781,7 +781,7 @@ app.post("/deletebranch/:id", limiter, async (req, res) => {
   }
 });
 
-app.get("/readbranch", limiter, async (req, res) => {
+app.get("/readbranch", async (req, res) => {
   try {
     const managerBranches = await allusersModel.find({ userType: "manager" });
 
@@ -816,7 +816,7 @@ app.get("/getbranch/:id", async (req, res) => {
 });
 
 // Define an endpoint to fetch branch names
-app.get("/branches/names", limiter, async (req, res) => {
+app.get("/branches/names", async (req, res) => {
   try {
     const managerBranches = await allusersModel.find(
       { userType: "manager" }, // Filter by userType 'manager'
@@ -835,7 +835,7 @@ app.get("/branches/names", limiter, async (req, res) => {
   }
 });
 
-app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
+app.post("/createmember", upload.single("image"), async (req, res) => {
   const {
     memberNo,
     fullName,
@@ -1066,7 +1066,7 @@ app.put("/updatemember/:id", async (req, res) => {
   }
 });
 
-app.post("/deletemember/:id", limiter, async (req, res) => {
+app.post("/deletemember/:id", async (req, res) => {
   const memberId = req.params.id;
   try {
     const deletedMember = await memberModel.findByIdAndDelete(memberId);
@@ -1084,7 +1084,7 @@ app.post("/deletemember/:id", limiter, async (req, res) => {
   }
 });
 
-app.get("/readmembers", limiter, async (req, res) => {
+app.get("/readmembers", async (req, res) => {
   try {
     const allMembers = await memberModel.find();
 
@@ -1098,7 +1098,7 @@ app.get("/readmembers", limiter, async (req, res) => {
   }
 });
 
-app.get("/readmembersname", limiter, async (req, res) => {
+app.get("/readmembersname", async (req, res) => {
   try {
     const allMembers = await memberModel.find({}, "fullName"); // Fetch 'firstName' and 'lastName' fields
 
@@ -1116,7 +1116,7 @@ app.get("/readmembersname", limiter, async (req, res) => {
   }
 });
 
-app.get("/readmemberids", limiter, async (req, res) => {
+app.get("/readmemberids", async (req, res) => {
   try {
     const allMembers = await memberModel.find({}, "memberNo"); // Fetch only the '_id' field
 
@@ -1155,7 +1155,7 @@ app.get("/getmember/:id", async (req, res) => {
 });
 
 // POST endpoint to create a new loan with a specified account ID
-app.post("/createloan", limiter, async (req, res) => {
+app.post("/createloan", async (req, res) => {
   const {
     loanId,
     loanProduct,
@@ -1205,7 +1205,7 @@ app.post("/createloan", limiter, async (req, res) => {
 });
 
 // PUT endpoint to update an existing loan's details along with its associated account
-app.put("/updateloan/:id", limiter, async (req, res) => {
+app.put("/updateloan/:id", async (req, res) => {
   const loanId = req.params.id;
   const {
     loanProduct,
@@ -1253,7 +1253,7 @@ app.put("/updateloan/:id", limiter, async (req, res) => {
   }
 });
 
-app.delete("/deleteloan/:id", limiter, async (req, res) => {
+app.delete("/deleteloan/:id", async (req, res) => {
   const loanId = req.params.id;
   try {
     const deletedLoan = await loansModel.findByIdAndDelete(loanId);
@@ -1272,7 +1272,7 @@ app.delete("/deleteloan/:id", limiter, async (req, res) => {
 });
 
 // GET endpoint to fetch all loans
-app.get("/loans", limiter, async (req, res) => {
+app.get("/loans", async (req, res) => {
   try {
     const allLoans = await loansModel.find();
 
@@ -1286,7 +1286,7 @@ app.get("/loans", limiter, async (req, res) => {
 });
 
 // GET endpoint to fetch loans by member number
-app.get("/loansbymember/:memberNo", limiter, async (req, res) => {
+app.get("/loansbymember/:memberNo", async (req, res) => {
   try {
     const memberNo = req.params.memberNo;
 
@@ -1304,7 +1304,7 @@ app.get("/loansbymember/:memberNo", limiter, async (req, res) => {
 });
 
 // GET endpoint to fetch a specific loan by its ID
-app.get("/loans/:id", limiter, async (req, res) => {
+app.get("/loans/:id", async (req, res) => {
   const loanId = req.params.id;
 
   try {
@@ -1323,7 +1323,7 @@ app.get("/loans/:id", limiter, async (req, res) => {
   }
 });
 
-app.get("/loanmembers", limiter, async (req, res) => {
+app.get("/loanmembers", async (req, res) => {
   try {
     const allMembers = await memberModel.find({}, { memberNo: 1, _id: 0 });
 
@@ -1568,7 +1568,7 @@ app.get("/accounts/:id", async (req, res) => {
   }
 });
 
-app.get("/accountids", limiter, async (req, res) => {
+app.get("/accountids", async (req, res) => {
   try {
     const accountNumbers = await AccountModel.find(
       { accountType: "Loan" },
@@ -2003,7 +2003,7 @@ app.get("/usersdetails/:id", async (req, res) => {
 });
 
 // Route to update an existing user in the database
-app.put("/updateintuser/:id", limiter, async (req, res) => {
+app.put("/updateintuser/:id", async (req, res) => {
   try {
     const userId = req.params.id; // Extract the user ID from the request parameters
     const {
@@ -2331,7 +2331,7 @@ app.delete("/categories/:id", async (req, res) => {
   }
 });
 
-app.get("/countMembers", limiter, async (req, res) => {
+app.get("/countMembers", async (req, res) => {
   try {
     const count = await memberModel.countDocuments();
 
@@ -2400,7 +2400,7 @@ app.get("/totalLoans", async (req, res) => {
   }
 });
 
-app.post("/getuseremailpassword", limiter, async (req, res) => {
+app.post("/getuseremailpassword", async (req, res) => {
   const { token } = req.body;
 
   // Check if the token exists
@@ -2426,7 +2426,7 @@ app.post("/getuseremailpassword", limiter, async (req, res) => {
   }
 });
 
-app.get("/randomgenMemberId", limiter, async (req, res) => {
+app.get("/randomgenMemberId", async (req, res) => {
   const min = 52; // Minimum number (52)
   const max = 9999999999; // Maximum number (9999999999)
   const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min; // Generate a random number within the specified range
@@ -2442,7 +2442,7 @@ app.get("/randomgenMemberId", limiter, async (req, res) => {
   }
 });
 
-app.get("/randomgenLoanId", limiter, async (req, res) => {
+app.get("/randomgenLoanId", async (req, res) => {
   let isUniqueIdFound = false;
   let uniqueid;
 
@@ -2461,7 +2461,7 @@ app.get("/randomgenLoanId", limiter, async (req, res) => {
   res.json({ uniqueid });
 });
 
-app.get("/randomgenAccountId", limiter, async (req, res) => {
+app.get("/randomgenAccountId", async (req, res) => {
   let isUniqueIdFound = false;
   let uniqueid;
 
@@ -2480,7 +2480,7 @@ app.get("/randomgenAccountId", limiter, async (req, res) => {
   res.json({ uniqueid });
 });
 
-app.get("/randomgenbranchCode", limiter, async (req, res) => {
+app.get("/randomgenbranchCode", async (req, res) => {
   let isUniqueIdFound = false;
   let uniqueid;
 
@@ -2499,7 +2499,7 @@ app.get("/randomgenbranchCode", limiter, async (req, res) => {
   res.json({ uniqueid });
 });
 
-app.get("/randomgenWalletId", limiter, async (req, res) => {
+app.get("/randomgenWalletId", async (req, res) => {
   let isUniqueWalletIdFound = false;
   let uniqueWalletId;
 
@@ -3247,7 +3247,7 @@ app.get("/repayments/:id/loanId", async (req, res) => {
   }
 });
 
-app.post("/createagent", limiter, async (req, res) => {
+app.post("/createagent", async (req, res) => {
   const {
     name,
     memberNo,
@@ -3310,7 +3310,7 @@ app.post("/createagent", limiter, async (req, res) => {
 });
 
 // Route for updating an agent's details and images using uploadimage endpoint
-app.put("/updateagent/:id", limiter, async (req, res) => {
+app.put("/updateagent/:id", async (req, res) => {
   const agentId = req.params.id;
 
   try {
