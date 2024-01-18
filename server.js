@@ -496,7 +496,7 @@ app.post("/all-login", limiter, async (req, res) => {
     res.json({ message: "Login Success!", token });
   } catch (error) {
     // // // console.error("Login Error:", error);
-    res.json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
@@ -553,7 +553,7 @@ app.post("/create", limiter, async (req, res) => {
       .json({ message: "User data saved to MongoDB", data: newUser });
   } catch (error) {
     // // // console.error("Error saving user data:", error);
-    res.json({ message: "Error saving user data" });
+    res.status(500).json({ message: "Error saving user data" });
   }
 });
 
@@ -585,7 +585,7 @@ app.post("/login", limiter, async (req, res) => {
 
     res.json({ message: "Login Success!", token });
   } catch (error) {
-    res.json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
@@ -613,7 +613,7 @@ app.get("/read", limiter, async (req, res) => {
     res.json(data);
   } catch (error) {
     // // // console.error("Error fetching data:", error); // Log error for debugging
-    res.json({ message: "Failed to fetch data" });
+    res.status(500).json({ message: "Failed to fetch data" });
   }
 });
 
@@ -639,7 +639,7 @@ app.put("/update/:id", limiter, async (req, res) => {
     res.status(200).json({ message: "User data updated", data: updatedUser });
   } catch (error) {
     // // // console.error("Error updating user data:", error);
-    res.json({ message: "Error updating user data" });
+    res.status(500).json({ message: "Error updating user data" });
   }
 });
 
@@ -657,7 +657,7 @@ app.post("/delete/:id", limiter, async (req, res) => {
       .json({ message: "User deleted successfully", data: deletedUser });
   } catch (error) {
     // // // // console.error("Error deleting user:", error);
-    res.json({ message: "Error deleting user" });
+    res.status(500).json({ message: "Error deleting user" });
   }
 });
 
@@ -717,7 +717,7 @@ app.post("/createbranch", limiter, async (req, res) => {
       .json({ message: "User data saved to MongoDB", data: newUser });
   } catch (error) {
     // // // console.error("Error saving user data:", error);
-    res.json({ message: "Error saving user data" });
+    res.status(500).json({ message: "Error saving user data" });
   }
 });
 
@@ -759,7 +759,7 @@ app.put("/updatebranch/:id", limiter, async (req, res) => {
       .json({ message: "Branch updated successfully", data: updatedBranch });
   } catch (error) {
     // // // console.error("Error updating branch:", error);
-    res.json({ message: "Error updating branch" });
+    res.status(500).json({ message: "Error updating branch" });
   }
 });
 
@@ -777,7 +777,7 @@ app.post("/deletebranch/:id", limiter, async (req, res) => {
       .json({ message: "Branch deleted successfully", data: deletedBranch });
   } catch (error) {
     // // // console.error("Error deleting branch:", error);
-    res.json({ message: "Error deleting branch" });
+    res.status(500).json({ message: "Error deleting branch" });
   }
 });
 
@@ -791,7 +791,7 @@ app.get("/readbranch", limiter, async (req, res) => {
     });
   } catch (error) {
     // // // console.error("Error retrieving manager branches:", error);
-    res.json({ message: "Error retrieving manager branches" });
+    res.status(500).json({ message: "Error retrieving manager branches" });
   }
 });
 
@@ -811,7 +811,7 @@ app.get("/getbranch/:id", async (req, res) => {
     res.status(200).json(branch);
   } catch (error) {
     // // // console.error("Error retrieving branch:", error);
-    res.json({ message: "Error retrieving branch" });
+    res.status(500).json({ message: "Error retrieving branch" });
   }
 });
 
@@ -831,7 +831,7 @@ app.get("/branches/names", limiter, async (req, res) => {
     });
   } catch (error) {
     // // // console.error("Error retrieving manager branch names:", error);
-    res.json({ message: "Error retrieving manager branch names" });
+    res.status(500).json({ message: "Error retrieving manager branch names" });
   }
 });
 
@@ -921,7 +921,7 @@ app.post("/createmember", upload.single("image"), limiter, async (req, res) => {
       .json({ message: "Member data saved to MongoDB", data: newMember });
   } catch (error) {
     // // console.error("Error saving member data:", error);
-    res.json({ message: "Error saving member data" });
+    res.status(500).json({ message: "Error saving member data" });
   }
 });
 
@@ -942,7 +942,7 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
     res.status(200).json({ url: result.secure_url });
   } catch (error) {
     // // console.error("Error uploading image:", error);
-    res.json({ message: "Error uploading image" });
+    res.status(500).json({ message: "Error uploading image" });
   }
 });
 
@@ -1062,7 +1062,7 @@ app.put("/updatemember/:id", async (req, res) => {
       .json({ message: "Member updated successfully", data: updatedMember });
   } catch (error) {
     // // console.error("Error updating member:", error);
-    res.json({ message: "Error updating member" });
+    res.status(500).json({ message: "Error updating member" });
   }
 });
 
@@ -1080,7 +1080,7 @@ app.post("/deletemember/:id", limiter, async (req, res) => {
       .json({ message: "Member deleted successfully", data: deletedMember });
   } catch (error) {
     // // console.error("Error deleting member:", error);
-    res.json({ message: "Error deleting member" });
+    res.status(500).json({ message: "Error deleting member" });
   }
 });
 
@@ -1094,7 +1094,7 @@ app.get("/readmembers", limiter, async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving members:", error);
-    res.json({ message: "Error retrieving members" });
+    res.status(500).json({ message: "Error retrieving members" });
   }
 });
 
@@ -1112,7 +1112,7 @@ app.get("/readmembersname", limiter, async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving member names:", error);
-    res.json({ message: "Error retrieving member names" });
+    res.status(500).json({ message: "Error retrieving member names" });
   }
 });
 
@@ -1130,7 +1130,7 @@ app.get("/readmemberids", limiter, async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving member IDs:", error);
-    res.json({ message: "Error retrieving member IDs" });
+    res.status(500).json({ message: "Error retrieving member IDs" });
   }
 });
 
@@ -1150,7 +1150,7 @@ app.get("/getmember/:id", async (req, res) => {
     res.status(200).json(member);
   } catch (error) {
     // // console.error("Error retrieving member:", error);
-    res.json({ message: "Error retrieving member" });
+    res.status(500).json({ message: "Error retrieving member" });
   }
 });
 
@@ -1200,7 +1200,7 @@ app.post("/createloan", limiter, async (req, res) => {
       .json({ message: "Loan data saved to MongoDB", data: newLoan });
   } catch (error) {
     // // console.error("Error saving loan data:", error);
-    res.json({ message: "Error saving loan data" });
+    res.status(500).json({ message: "Error saving loan data" });
   }
 });
 
@@ -1249,7 +1249,7 @@ app.put("/updateloan/:id", limiter, async (req, res) => {
       .json({ message: "Loan updated successfully", data: updatedLoan });
   } catch (error) {
     // // console.error("Error updating loan:", error);
-    res.json({ message: "Error updating loan" });
+    res.status(500).json({ message: "Error updating loan" });
   }
 });
 
@@ -1267,7 +1267,7 @@ app.delete("/deleteloan/:id", limiter, async (req, res) => {
       .json({ message: "Loan deleted successfully", data: deletedLoan });
   } catch (error) {
     // // console.error("Error deleting loan:", error);
-    res.json({ message: "Error deleting loan" });
+    res.status(500).json({ message: "Error deleting loan" });
   }
 });
 
@@ -1281,7 +1281,7 @@ app.get("/loans", limiter, async (req, res) => {
       .json({ message: "All loans retrieved successfully", data: allLoans });
   } catch (error) {
     // // console.error("Error retrieving loans:", error);
-    res.json({ message: "Error retrieving loans" });
+    res.status(500).json({ message: "Error retrieving loans" });
   }
 });
 
@@ -1299,7 +1299,7 @@ app.get("/loansbymember/:memberNo", limiter, async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving loans:", error);
-    res.json({ message: "Error retrieving loans" });
+    res.status(500).json({ message: "Error retrieving loans" });
   }
 });
 
@@ -1319,7 +1319,7 @@ app.get("/loans/:id", limiter, async (req, res) => {
       .json({ message: "Loan retrieved successfully", data: loan });
   } catch (error) {
     // // console.error("Error retrieving loan:", error);
-    res.json({ message: "Error retrieving loan" });
+    res.status(500).json({ message: "Error retrieving loan" });
   }
 });
 
@@ -1335,7 +1335,7 @@ app.get("/loanmembers", limiter, async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving member numbers:", error); // Log the specific error
-    res.json({ message: "Error retrieving member numbers" });
+    res.status(500).json({ message: "Error retrieving member numbers" });
   }
 });
 
@@ -1370,7 +1370,7 @@ app.post("/repayments", async (req, res) => {
       .status(200)
       .json({ message: "Repayment record created", data: savedRepayment });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Failed to create repayment record",
       error: error.message,
     });
@@ -1404,7 +1404,7 @@ app.get("/repayments", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving repayment records:", error);
-    res.json({
+    res.status(500).json({
       message: "Error retrieving repayment records",
       error: error.message,
     });
@@ -1427,7 +1427,7 @@ app.get("/repayments/:id", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving repayment record:", error);
-    res.json({
+    res.status(500).json({
       message: "Error retrieving repayment record",
       error: error.message,
     });
@@ -1470,7 +1470,7 @@ app.put("/repayments/:id", async (req, res) => {
       .status(200)
       .json({ message: "Repayment record updated", data: updatedRepayment });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Failed to update repayment record",
       error: error.message,
     });
@@ -1494,7 +1494,7 @@ app.delete("/repayments/:id", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error deleting repayment record:", error);
-    res.json({
+    res.status(500).json({
       message: "Error deleting repayment record",
       error: error.message,
     });
@@ -1514,7 +1514,7 @@ app.get("/approvedLoans", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error fetching approved loans:", error);
-    res.json({ message: "Error fetching approved loans" });
+    res.status(500).json({ message: "Error fetching approved loans" });
   }
 });
 
@@ -1535,17 +1535,17 @@ app.post("/createaccounts", async (req, res) => {
 
 // GET endpoint to fetch all accounts
 app.get("/accounts", async (req, res) => {
-  try {
+  // try {
     const allAccounts = await AccountModel.find();
 
     res.status(200).json({
       message: "All accounts retrieved successfully",
       data: allAccounts,
     });
-  } catch (error) {
-    // // console.error("Error retrieving accounts:", error);
-    res.json({ message: "Error retrieving accounts" });
-  }
+  // } catch (error) {
+  //   // // console.error("Error retrieving accounts:", error);
+  //   res.status(500).json({ message: "Error retrieving accounts" });
+  // }
 });
 
 // GET endpoint to fetch a specific account by its ID
@@ -1564,7 +1564,7 @@ app.get("/accounts/:id", async (req, res) => {
       .json({ message: "Account retrieved successfully", data: account });
   } catch (error) {
     // // console.error("Error retrieving account:", error);
-    res.json({ message: "Error retrieving account" });
+    res.status(500).json({ message: "Error retrieving account" });
   }
 });
 
@@ -1591,7 +1591,7 @@ app.get("/accountids", limiter, async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving account numbers:", error);
-    res.json({ message: "Error retrieving account numbers" });
+    res.status(500).json({ message: "Error retrieving account numbers" });
   }
 });
 
@@ -1619,7 +1619,7 @@ app.get("/readaccountnumbers", async (req, res) => {
     const numbers = accountNumbers.map((account) => account.accountNumber);
     res.json(numbers);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1632,7 +1632,7 @@ app.delete("/deleteaccounts/:id", async (req, res) => {
     }
     res.json({ message: "Account deleted successfully" });
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1709,7 +1709,7 @@ app.post("/transactions", async (req, res) => {
       .json({ message: "Transaction created", data: savedTransaction });
   } catch (error) {
     res
-      
+      .status(500)
       .json({ message: "Failed to create transaction", error: error.message });
   }
 });
@@ -1725,7 +1725,7 @@ app.get("/transactions", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving transactions:", error);
-    res.json({ message: "Error retrieving transactions" });
+    res.status(500).json({ message: "Error retrieving transactions" });
   }
 });
 
@@ -1752,7 +1752,7 @@ app.get("/transactionsbymember/:id", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving transactions:", error);
-    res.json({ message: "Error retrieving transactions" });
+    res.status(500).json({ message: "Error retrieving transactions" });
   }
 });
 
@@ -1773,7 +1773,7 @@ app.get("/transactions/:id", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving transaction:", error);
-    res.json({ message: "Error retrieving transaction" });
+    res.status(500).json({ message: "Error retrieving transaction" });
   }
 });
 
@@ -1796,7 +1796,7 @@ app.delete("/transactions/:id", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error deleting transaction:", error);
-    res.json({ message: "Error deleting transaction" });
+    res.status(500).json({ message: "Error deleting transaction" });
   }
 });
 
@@ -1824,7 +1824,7 @@ app.put("/transactions/:id", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error updating transaction:", error);
-    res.json({ message: "Error updating transaction" });
+    res.status(500).json({ message: "Error updating transaction" });
   }
 });
 
@@ -1856,7 +1856,7 @@ app.get("/expenses", async (req, res) => {
     res.json(expenses);
   } catch (error) {
     res
-      
+      .status(500)
       .json({ message: "Error retrieving expenses", error: error.message });
   }
 });
@@ -1910,7 +1910,7 @@ app.post("/uploadmultiple", upload.array("images", 2), async (req, res) => {
 
     res.status(200).json({ urls: uploadedUrls });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error uploading files to Cloudinary",
       error: error.message,
     });
@@ -1939,7 +1939,7 @@ app.post("/upload", upload.single("image"), async (req, res) => {
 
     res.status(200).json({ url: imageUrl }); // Send the image URL back in the response
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error uploading file to Cloudinary",
       error: error.message,
     });
@@ -1973,7 +1973,7 @@ app.post("/users", async (req, res) => {
       .json({ message: "User created successfully!", user: savedUser });
   } catch (error) {
     res
-      
+      .status(500)
       .json({ message: "Failed to create user", error: error.message });
   }
 });
@@ -1984,7 +1984,7 @@ app.get("/api/users", async (req, res) => {
     const agents = await allusersModel.find();
     res.status(200).json(agents);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1998,7 +1998,7 @@ app.get("/usersdetails/:id", async (req, res) => {
     }
     res.status(200).json(user);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2038,7 +2038,7 @@ app.put("/updateintuser/:id", limiter, async (req, res) => {
     res.status(200).json({ message: "User data updated", data: user });
   } catch (error) {
     // // console.error("Error updating user data:", error);
-    res.json({ message: "Error updating user data" });
+    res.status(500).json({ message: "Error updating user data" });
   }
 });
 
@@ -2055,7 +2055,7 @@ app.delete("/api/users/:id", async (req, res) => {
 
     res.status(200).json({ deletedUser, message: "User deleted successfully" });
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2100,7 +2100,7 @@ app.get("/accountstatement", async (req, res) => {
     res.status(200).json(formattedTransactions);
   } catch (error) {
     res
-      
+      .status(500)
       .json({ message: "Failed to fetch transactions", error: error.message });
   }
 });
@@ -2148,7 +2148,7 @@ app.post("/loanreport", async (req, res) => {
 
     res.status(200).json(mergedData);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2182,7 +2182,7 @@ app.get("/loandue", async (req, res) => {
 
     res.status(200).json(processedData);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2226,7 +2226,7 @@ app.get("/transactionreport", async (req, res) => {
 
     res.status(200).json(transactions);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2257,7 +2257,7 @@ app.get("/reportexpenses", async (req, res) => {
     res.json(expenses);
   } catch (error) {
     res
-      
+      .status(500)
       .json({ message: "Error retrieving expenses", error: error.message });
   }
 });
@@ -2270,7 +2270,7 @@ app.post("/categories", async (req, res) => {
     await newCategory.save();
     res.status(201).json(newCategory);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2280,7 +2280,7 @@ app.get("/categories", async (req, res) => {
     const categories = await categoryModel.find();
     res.json(categories);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2294,7 +2294,7 @@ app.get("/categories/:id", async (req, res) => {
     }
     res.json(category);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2313,7 +2313,7 @@ app.put("/categories/:id", async (req, res) => {
     }
     res.json(updatedCategory);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2327,7 +2327,7 @@ app.delete("/categories/:id", async (req, res) => {
     }
     res.json({ message: "Category deleted successfully" });
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -2338,7 +2338,7 @@ app.get("/countMembers", limiter, async (req, res) => {
     res.status(200).json({ count });
   } catch (error) {
     // // console.error("Error counting members:", error);
-    res.json({ message: "Error counting members" });
+    res.status(500).json({ message: "Error counting members" });
   }
 });
 
@@ -2354,7 +2354,7 @@ app.get("/depositRequestsPending", async (req, res) => {
   } catch (error) {
     // // console.error("Error retrieving deposit requests pending:", error);
     res
-      
+      .status(500)
       .json({ message: "Error retrieving deposit requests pending" });
   }
 });
@@ -2371,7 +2371,7 @@ app.get("/withdrawRequestsPending", async (req, res) => {
   } catch (error) {
     // // console.error("Error retrieving withdraw requests pending:", error);
     res
-      
+      .status(500)
       .json({ message: "Error retrieving withdraw requests pending" });
   }
 });
@@ -2384,7 +2384,7 @@ app.get("/pendingLoans", async (req, res) => {
     res.status(200).json({ data: pendingLoans });
   } catch (error) {
     // // console.error("Error retrieving pending loans:", error);
-    res.json({ message: "Error retrieving pending loans" });
+    res.status(500).json({ message: "Error retrieving pending loans" });
   }
 });
 
@@ -2396,7 +2396,7 @@ app.get("/totalLoans", async (req, res) => {
     res.status(200).json({ totalLoans });
   } catch (error) {
     // // console.error("Error retrieving total number of loans:", error);
-    res.json({ message: "Error retrieving total number of loans" });
+    res.status(500).json({ message: "Error retrieving total number of loans" });
   }
 });
 
@@ -2438,7 +2438,7 @@ app.get("/randomgenMemberId", limiter, async (req, res) => {
   if (!existingMember) {
     res.json({ uniqueid });
   } else {
-    res.json({ error: "Generated ID already exists" });
+    res.status(500).json({ error: "Generated ID already exists" });
   }
 });
 
@@ -2552,7 +2552,7 @@ app.get("/accountDetails/:accountNumber", async (req, res) => {
       associatedLoanIds: associatedLoans,
     });
   } catch (error) {
-    return res.json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 });
 
@@ -2597,7 +2597,7 @@ app.get("/memberAccountDetails/:id", async (req, res) => {
       associatedLoanIds: associatedLoans.join(", "),
     });
   } catch (error) {
-    return res.json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 });
 
@@ -2669,7 +2669,7 @@ app.get("/calculate-revenue", async (req, res) => {
     res.json({ year, totalRevenue });
   } catch (error) {
     // console.error("Error calculating revenue:", error);
-    res.json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -2772,7 +2772,7 @@ app.get("/populate-revenue", async (req, res) => {
     res.json({ message: "Revenue data population completed" });
   } catch (error) {
     // // console.error("Error populating revenue data:", error);
-    res.json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -2793,7 +2793,7 @@ app.post("/all-create", async (req, res) => {
     const savedUser = await newUser.save();
     res.json(savedUser);
   } catch (error) {
-    res.json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -2812,7 +2812,7 @@ app.put("/all-update/:id", async (req, res) => {
 
     res.json(updatedUser);
   } catch (error) {
-    res.json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -2830,7 +2830,7 @@ app.delete("/all-delete/:id", async (req, res) => {
       res.status(404).json({ message: "User not found" });
     }
   } catch (error) {
-    res.json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -2841,7 +2841,7 @@ app.get("/all-users", async (req, res) => {
     const allUsers = await allusersModel.find();
     res.status(200).json(allUsers);
   } catch (error) {
-    res.json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -2856,7 +2856,7 @@ app.get("/all-users/:id", async (req, res) => {
     }
     res.status(200).json(user);
   } catch (error) {
-    res.json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -2886,7 +2886,7 @@ app.put("/update-user/:email", async (req, res) => {
 
     res.json(updatedUser);
   } catch (error) {
-    res.json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -2908,7 +2908,7 @@ app.get("/totalLoanAmount", async (req, res) => {
       res.json({ totalLoanAmount: 0 });
     }
   } catch (err) {
-    res.json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -2930,7 +2930,7 @@ app.get("/totalCurrentBalance", async (req, res) => {
       res.json({ totalCurrentBalance: 0 });
     }
   } catch (err) {
-    res.json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -2951,7 +2951,7 @@ app.get("/accounts-exp", async (req, res) => {
     const accounts = await AccountModel.find();
     res.json(accounts);
   } catch (err) {
-    res.json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -2965,7 +2965,7 @@ app.get("/accounts-exp/:id", async (req, res) => {
     }
     res.json(account);
   } catch (err) {
-    res.json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -3000,7 +3000,7 @@ app.delete("/accounts-exp/:id", async (req, res) => {
     }
     res.json({ message: "Account deleted successfully" });
   } catch (err) {
-    res.json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -3020,7 +3020,7 @@ app.get("/detailsByAccountNumber/:accountNumber", async (req, res) => {
 
     res.status(200).json({ memberNo, memberName });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error fetching account details",
       error: error.message,
     });
@@ -3041,7 +3041,7 @@ app.get("/detailsByMemberId/:memberId", async (req, res) => {
 
     res.status(200).json({ accountNumber, memberName });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error fetching account details",
       error: error.message,
     });
@@ -3066,7 +3066,7 @@ app.put("/approveLoan/:loanId", async (req, res) => {
 
     res.status(200).json({ message: "Loan status updated to Approved", loan });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error updating loan status to Approved",
       error: error.message,
     });
@@ -3091,7 +3091,7 @@ app.put("/cancelLoan/:loanId", async (req, res) => {
 
     res.status(200).json({ message: "Loan status updated to Cancelled", loan });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error updating loan status to Cancelled",
       error: error.message,
     });
@@ -3118,7 +3118,7 @@ app.put("/objection/:loanId", async (req, res) => {
       .status(200)
       .json({ message: "Objection column updated successfully", loan });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error updating objection column",
       error: error.message,
     });
@@ -3192,7 +3192,7 @@ app.post(
       //   "Error updating payment data and creating RepaymentDetails:",
       //   error
       // );
-      res.json({ message: "Server Error" });
+      res.status(500).json({ message: "Server Error" });
     }
   }
 );
@@ -3218,7 +3218,7 @@ app.get("/api/checkRepaymentExists/:loanId", async (req, res) => {
     res.json({ exists: repaymentExistsForCurrentMonth });
   } catch (error) {
     // // console.error("Error checking repayment data:", error);
-    res.json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
@@ -3240,7 +3240,7 @@ app.get("/repayments/:id/loanId", async (req, res) => {
     });
   } catch (error) {
     // // console.error("Error retrieving loan ID from repayment record:", error);
-    res.json({
+    res.status(500).json({
       message: "Error retrieving loan ID from repayment record",
       error: error.message,
     });
@@ -3305,7 +3305,7 @@ app.post("/createagent", limiter, async (req, res) => {
       .json({ message: "Agent data saved to MongoDB", data: newAgent });
   } catch (error) {
     // // console.error("Error saving agent data:", error);
-    res.json({ message: "Error saving agent data" });
+    res.status(500).json({ message: "Error saving agent data" });
   }
 });
 
@@ -3375,7 +3375,7 @@ app.put("/updateagent/:id", limiter, async (req, res) => {
     res.status(200).json({ message: "Agent data updated", data: agent });
   } catch (error) {
     // // console.error("Error updating agent data:", error);
-    res.json({ message: "Error updating agent data" });
+    res.status(500).json({ message: "Error updating agent data" });
   }
 });
 
@@ -3386,7 +3386,7 @@ app.post("/wallet", async (req, res) => {
     const createdWallet = await walletModel.create({ walletid, shares });
     res.status(201).json(createdWallet);
   } catch (error) {
-    res.json({ error: "Error creating wallet" });
+    res.status(500).json({ error: "Error creating wallet" });
   }
 });
 
@@ -3400,7 +3400,7 @@ app.get("/wallet/:walletId", async (req, res) => {
     }
     res.json(wallet);
   } catch (error) {
-    res.json({ error: "Error fetching wallet" });
+    res.status(500).json({ error: "Error fetching wallet" });
   }
 });
 
@@ -3419,7 +3419,7 @@ app.put("/wallet/:walletId", async (req, res) => {
     }
     res.json(updatedWallet);
   } catch (error) {
-    res.json({ error: "Error updating wallet shares" });
+    res.status(500).json({ error: "Error updating wallet shares" });
   }
 });
 
@@ -3435,7 +3435,7 @@ app.delete("/wallet/:walletId", async (req, res) => {
     }
     res.json(deletedWallet);
   } catch (error) {
-    res.json({ error: "Error deleting wallet" });
+    res.status(500).json({ error: "Error deleting wallet" });
   }
 });
 
@@ -3465,7 +3465,7 @@ app.delete("/wallet/:walletId", async (req, res) => {
 
 //     res.status(200).json({ message: "Orphan images deleted successfully" });
 //   } catch (err) {
-//     res.json({ error: err.message });
+//     res.status(500).json({ error: err.message });
 //   }
 // });
 
@@ -3494,7 +3494,7 @@ app.get("/expense-per-year", async (req, res) => {
 
     res.status(200).json(formattedData);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -3519,7 +3519,7 @@ app.get("/stacked-chart-data", async (req, res) => {
 
     res.json(yearlyProfits);
   } catch (error) {
-    res.json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -3550,7 +3550,7 @@ app.get("/getAllMemberImages", async (req, res) => {
 
     res.status(200).json({ imageUrls });
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -3581,7 +3581,7 @@ app.get("/getAllAccountImages", async (req, res) => {
 
     res.status(200).json({ imageUrls });
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -3607,7 +3607,7 @@ app.get("/getAllUserImages", async (req, res) => {
 
     res.status(200).json({ imageUrls });
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -3631,7 +3631,7 @@ app.put("/approveaccount/:accountId", async (req, res) => {
       .status(200)
       .json({ message: "Account status updated to Approved", account });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error updating Account status to Approved",
       error: error.message,
     });
@@ -3657,7 +3657,7 @@ app.put("/cancelaccount/:accountId", async (req, res) => {
       .status(200)
       .json({ message: "Account status updated to Cancelled", account });
   } catch (error) {
-    res.json({
+    res.status(500).json({
       message: "Error updating Account status to Cancelled",
       error: error.message,
     });
@@ -3672,7 +3672,7 @@ app.get("/admin-databases", async (req, res) => {
     res.status(200).json({ databases: adminDatabases });
   } catch (error) {
     // // console.error("Error:", error);
-    res.json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
@@ -3703,7 +3703,7 @@ app.get("/branch-databases/:objectId", async (req, res) => {
     }
   } catch (error) {
     // // console.error("Error:", error);
-    res.json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
@@ -3736,7 +3736,7 @@ app.get("/branch-users/:objectId", async (req, res) => {
       res.status(404).json({ message: "Document not found" });
     }
   } catch (error) {
-    res.json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
@@ -3761,7 +3761,7 @@ app.get("/userdetails/:databaseName", async (req, res) => {
     res.json(userDetails);
   } catch (err) {
     // If an error occurs during the fetch, send an error response
-    res.json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -3801,7 +3801,7 @@ app.get("/switch-database/:dbName", async (req, res) => {
     res.json({ message: "Database switched successfully" });
   } catch (error) {
     // // console.error("Switch Database Error:", error);
-    res.json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
@@ -3860,7 +3860,7 @@ app.get('/totals-this-month', async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -3885,7 +3885,7 @@ app.get("/recentCollection", async (req, res) => {
     res.status(200).json({ RecentCollection: formattedData });
   } catch (error) {
     // // console.error("Error retrieving recent collection data:", error);
-    res.json({ message: "Error retrieving recent collection data" });
+    res.status(500).json({ message: "Error retrieving recent collection data" });
   }
 });
 
@@ -3904,7 +3904,7 @@ app.post("/uploadsignature", async (req, res) => {
     res.status(200).json({ url: result.secure_url });
   } catch (error) {
     console.error("Error uploading image:", error);
-    res.json({ message: "Error uploading image" });
+    res.status(500).json({ message: "Error uploading image" });
   }
 });
 
