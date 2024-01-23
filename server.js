@@ -103,7 +103,7 @@ const loanSchema = new mongoose.Schema(
 
 const repaymentSchema = new mongoose.Schema(
   {
-    loanId: { type: String, ref: "loansModel", required: true },
+    loanId: { type: Number, ref: "loansModel", required: true },
     paymentDate: { type: Date },
     dueDate: { type: Date, required: true },
     dueAmount: { type: Number, required: true },
@@ -1083,9 +1083,6 @@ app.get("/readmembers", async (req, res) => {
   } catch (error) {
     console.error("Error retrieving members:", error);
 
-    // Log the error to a file
-    logError(error);
-
     // If it's not a specific type of error, provide a generic error message
     res.status(500).json({
       message: "Error retrieving members",
@@ -1093,17 +1090,6 @@ app.get("/readmembers", async (req, res) => {
     });
   }
 });
-
-function logError(error) {
-  const errorMessage = `${new Date().toISOString()} - ${error.stack}\n`;
-
-  // Append the error message to the error.log file
-  fs.appendFile('error.log', errorMessage, (err) => {
-    if (err) {
-      console.error('Error writing to error.log:', err);
-    }
-  });
-}
 
 app.get("/readmembersname", async (req, res) => {
   try {
@@ -1515,6 +1501,7 @@ app.get("/approvedLoans", async (req, res) => {
       { status: "Approved" },
       { loanId: 1, _id: 0 }
     );
+    repaymen
     res.status(200).json({
       message: "Approved loans retrieved successfully",
       data: approvedLoans,
@@ -1522,6 +1509,30 @@ app.get("/approvedLoans", async (req, res) => {
   } catch (error) {
     // // console.error("Error fetching approved loans:", error);
     res.status(500).json({ message: "Error fetching approved loans" });
+  }
+});
+
+// GET endpoint to fetch approved loan IDs that are not in the repayment model
+app.get("/approvedLoansNotInRepayment", async (req, res) => {
+  try {
+    // Fetch all loan IDs in the repayment model
+    const repaymentLoans = await repaymentModel.find({}, { loanId: 1, _id: 0 });
+    const repaymentLoanIds = repaymentLoans.map((repayment) => repayment.loanId);
+
+    // Fetch approved loans that are not in the repayment model
+    const approvedLoansNotInRepayment = await loansModel.find(
+      { status: "Approved", loanId: { $nin: repaymentLoanIds } },
+      { loanId: 1, _id: 0 }
+    );
+
+    res.status(200).json({
+      message: "Approved loans not in repayment retrieved successfully",
+      data: approvedLoansNotInRepayment,
+    });
+  } catch (error) {
+    // Handle the error or log it
+    // console.error("Error fetching approved loans not in repayment:", error);
+    res.status(500).json({ message: "Error fetching approved loans not in repayment" });
   }
 });
 
@@ -1599,6 +1610,35 @@ app.get("/accountids", async (req, res) => {
   } catch (error) {
     // // console.error("Error retrieving account numbers:", error);
     res.status(500).json({ message: "Error retrieving account numbers" });
+  }
+});
+
+app.get("/approvedaccountids", async (req, res) => {
+  try {
+    // Fetch only approved accounts by adding the status condition
+    const approvedAccountNumbers = await AccountModel.find(
+      { accountType: "Loan", approval: "Approved" },
+      "accountNumber"
+    );
+
+    if (!approvedAccountNumbers || approvedAccountNumbers.length === 0) {
+      return res.status(404).json({
+        message: "No approved account numbers found with the account type as loan",
+      });
+    }
+
+    // Extract accountNumbers from the fetched data
+    const numbers = approvedAccountNumbers.map((account) => account.accountNumber);
+
+    res.status(200).json({
+      message:
+        "Approved account numbers with the account type as loan retrieved successfully",
+      data: numbers,
+    });
+  } catch (error) {
+    // Handle the error or log it
+    // console.error("Error retrieving approved account numbers:", error);
+    res.status(500).json({ message: "Error retrieving approved account numbers" });
   }
 });
 
