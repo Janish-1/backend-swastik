@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
-const fs = require("fs");
+const fs = require("fs").promises;
 const dotenv = require("dotenv");
 const moment = require("moment");
 const cloudinary = require("cloudinary").v2;
@@ -23,6 +23,8 @@ require("dotenv").config(); // Load environment variables from .env file
 
 // Production
 const uri = process.env.MONGODB_URI;
+
+const timestampFilePath = "last_execution_timestamp.txt";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -704,7 +706,13 @@ app.post("/createbranch", async (req, res) => {
       .status(200)
       .json({ message: "User data saved to MongoDB", data: newUser });
   } catch (error) {
-    // // // console.error("Error saving user data:", error);
+    if (error.name === "ValidationError") {
+      // Handling validation errors
+      const errors = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({ message: "Validation error", errors });
+    }
+
+    console.error("Error saving user data:", error);
     res.status(500).json({ message: "Error saving user data" });
   }
 });
@@ -746,7 +754,13 @@ app.put("/updatebranch/:id", async (req, res) => {
       .status(200)
       .json({ message: "Branch updated successfully", data: updatedBranch });
   } catch (error) {
-    // // // console.error("Error updating branch:", error);
+    if (error.name === "ValidationError") {
+      // Handling validation errors
+      const errors = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({ message: "Validation error", errors });
+    }
+
+    console.error("Error updating branch:", error);
     res.status(500).json({ message: "Error updating branch" });
   }
 });
@@ -824,45 +838,8 @@ app.get("/branches/names", async (req, res) => {
 });
 
 app.post("/createmember", upload.single("image"), async (req, res) => {
-  const {
-    memberNo,
-    fullName,
-    email,
-    branchName,
-    photo, // Assuming this is a URL or path to the image file
-    fatherName,
-    gender,
-    maritalStatus,
-    dateOfBirth,
-    currentAddress,
-    permanentAddress,
-    whatsAppNo,
-    idProof, // ID proof type (Aadhar, Passport, Electricity Bill, etc.)
-    nomineeName,
-    relationship,
-    nomineeMobileNo,
-    nomineeDateOfBirth,
-    walletId,
-    numberOfShares,
-    signature,
-  } = req.body;
-
-  let imageUrl = ""; // Initialize imageUrl variable
-
-  // Check if there is an uploaded image
-  if (req.file) {
-    const base64String = `data:${req.file.mimetype
-      };base64,${req.file.buffer.toString("base64")}`;
-
-    const result = await cloudinary.uploader.upload(base64String, {
-      resource_type: "auto", // Specify the resource type if necessary
-    });
-
-    imageUrl = result.secure_url;
-  }
-
   try {
-    const newMember = new memberModel({
+    const {
       memberNo,
       fullName,
       email,
@@ -883,33 +860,81 @@ app.post("/createmember", upload.single("image"), async (req, res) => {
       walletId,
       numberOfShares,
       signature,
+    } = req.body;
+
+    let imageUrl = "";
+
+    // Check if there is an uploaded image
+    if (req.file) {
+      const base64String = `data:${
+        req.file.mimetype
+      };base64,${req.file.buffer.toString("base64")}`;
+      const result = await cloudinary.uploader.upload(base64String, {
+        resource_type: "auto",
+      });
+      imageUrl = result.secure_url;
+    }
+
+    // Create a new member instance
+    const newMember = new memberModel({
+      memberNo,
+      fullName,
+      email,
+      branchName,
+      photo: imageUrl || null, // Use the uploaded image URL if available, otherwise null
+      fatherName,
+      gender,
+      maritalStatus,
+      dateOfBirth,
+      currentAddress,
+      permanentAddress,
+      whatsAppNo,
+      idProof,
+      nomineeName,
+      relationship,
+      nomineeMobileNo,
+      nomineeDateOfBirth,
+      walletId,
+      numberOfShares,
+      signature,
     });
 
-    // Check if walletid and shares are provided in the request body
-    if (walletId === undefined || numberOfShares === undefined) {
-      return res
-        .status(400)
-        .json({ error: "Wallet ID and shares are required" });
-    }
-
-    // Create a wallet using the provided walletid and shares
-    const response = await walletModel.create({ walletId, numberOfShares });
-    // // console.log(response);
-
+    // Save the new member to MongoDB
     await newMember.save();
 
-    try {
-      await memberidsModel.create({ memberNo: memberNo });
-    } catch (error) {
-      // // console.error(error);
+    // Create a record in memberidsModel
+    await memberidsModel.create({ memberNo });
+
+    // Validate if walletId and numberOfShares are provided in the request body
+    if (walletId === undefined || numberOfShares === undefined) {
+      return res.status(400).json({
+        error: "Wallet ID and shares are required in the request body.",
+      });
     }
 
+    // Create a wallet using the provided walletId and numberOfShares
+    const response = await walletModel.create({ walletId, numberOfShares });
+
+    // Respond with success message
     res
       .status(200)
       .json({ message: "Member data saved to MongoDB", data: newMember });
   } catch (error) {
-    // // console.error("Error saving member data:", error);
-    res.status(500).json({ message: "Error saving member data" });
+    console.error("Error saving member data:", error);
+
+    // Handle specific errors
+    if (error.name === "ValidationError") {
+      // Handle Mongoose validation errors
+      const validationErrors = Object.values(error.errors).map(
+        (err) => err.message
+      );
+      res.status(400).json({ error: validationErrors });
+    } else {
+      // Handle other types of errors
+      res
+        .status(500)
+        .json({ error: "Error saving member data. Please try again later." });
+    }
   }
 });
 
@@ -920,8 +945,9 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const base64String = `data:${req.file.mimetype
-      };base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${
+      req.file.mimetype
+    };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -1501,7 +1527,7 @@ app.get("/approvedLoans", async (req, res) => {
       { status: "Approved" },
       { loanId: 1, _id: 0 }
     );
-    repaymen
+    repaymen;
     res.status(200).json({
       message: "Approved loans retrieved successfully",
       data: approvedLoans,
@@ -1517,7 +1543,9 @@ app.get("/approvedLoansNotInRepayment", async (req, res) => {
   try {
     // Fetch all loan IDs in the repayment model
     const repaymentLoans = await repaymentModel.find({}, { loanId: 1, _id: 0 });
-    const repaymentLoanIds = repaymentLoans.map((repayment) => repayment.loanId);
+    const repaymentLoanIds = repaymentLoans.map(
+      (repayment) => repayment.loanId
+    );
 
     // Fetch approved loans that are not in the repayment model
     const approvedLoansNotInRepayment = await loansModel.find(
@@ -1532,7 +1560,9 @@ app.get("/approvedLoansNotInRepayment", async (req, res) => {
   } catch (error) {
     // Handle the error or log it
     // console.error("Error fetching approved loans not in repayment:", error);
-    res.status(500).json({ message: "Error fetching approved loans not in repayment" });
+    res
+      .status(500)
+      .json({ message: "Error fetching approved loans not in repayment" });
   }
 });
 
@@ -1623,12 +1653,15 @@ app.get("/approvedaccountids", async (req, res) => {
 
     if (!approvedAccountNumbers || approvedAccountNumbers.length === 0) {
       return res.status(404).json({
-        message: "No approved account numbers found with the account type as loan",
+        message:
+          "No approved account numbers found with the account type as loan",
       });
     }
 
     // Extract accountNumbers from the fetched data
-    const numbers = approvedAccountNumbers.map((account) => account.accountNumber);
+    const numbers = approvedAccountNumbers.map(
+      (account) => account.accountNumber
+    );
 
     res.status(200).json({
       message:
@@ -1638,7 +1671,9 @@ app.get("/approvedaccountids", async (req, res) => {
   } catch (error) {
     // Handle the error or log it
     // console.error("Error retrieving approved account numbers:", error);
-    res.status(500).json({ message: "Error retrieving approved account numbers" });
+    res
+      .status(500)
+      .json({ message: "Error retrieving approved account numbers" });
   }
 });
 
@@ -1972,8 +2007,9 @@ app.post("/upload", upload.single("image"), async (req, res) => {
     }
 
     // Convert the buffer to a base64 data URL
-    const base64String = `data:${req.file.mimetype
-      };base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${
+      req.file.mimetype
+    };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -2478,9 +2514,12 @@ app.get("/randomgenMemberId", async (req, res) => {
   const max = 9999999999; // Maximum number (9999999999)
   const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min; // Generate a random number within the specified range
 
-  const uniqueid = randomNumber.toString().padStart(10, '0'); // Format the number to have at least 10 digits
+  const uniqueid = randomNumber.toString().padStart(10, "0"); // Format the number to have at least 10 digits
 
-  const existingMember = await memberidsModel.findOne({ memberNo: uniqueid }, "memberNo");
+  const existingMember = await memberidsModel.findOne(
+    { memberNo: uniqueid },
+    "memberNo"
+  );
 
   if (!existingMember) {
     res.json({ uniqueid });
@@ -2678,27 +2717,29 @@ app.get("/calculate-revenue", async (req, res) => {
 
       let monthlyRevenue = 0;
 
-      const activeLoans = await loansModel.find({
-        $or: [
-          {
-            $and: [
-              { releaseDate: { $lte: endDate } },
-              {
-                $or: [
-                  { endDate: { $gte: startDate, $lte: endDate } }, // Consider year for endDate
-                  { endDate: { $exists: false } },
-                ],
-              },
-            ],
-          },
-          {
-            $and: [
-              { releaseDate: { $gte: startDate, $lte: endDate } }, // Consider year for releaseDate
-              { endDate: { $exists: false } },
-            ],
-          },
-        ],
-      }).select("loanId");
+      const activeLoans = await loansModel
+        .find({
+          $or: [
+            {
+              $and: [
+                { releaseDate: { $lte: endDate } },
+                {
+                  $or: [
+                    { endDate: { $gte: startDate, $lte: endDate } }, // Consider year for endDate
+                    { endDate: { $exists: false } },
+                  ],
+                },
+              ],
+            },
+            {
+              $and: [
+                { releaseDate: { $gte: startDate, $lte: endDate } }, // Consider year for releaseDate
+                { endDate: { $exists: false } },
+              ],
+            },
+          ],
+        })
+        .select("loanId");
 
       const loanIds = activeLoans.map((loan) => loan.loanId);
 
@@ -2719,7 +2760,6 @@ app.get("/calculate-revenue", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 const calculateRevenue = async (year, month) => {
   return new Promise(async (resolve, reject) => {
@@ -2772,56 +2812,90 @@ const calculateRevenue = async (year, month) => {
   });
 };
 
-// Define a route to populate revenue data for multiple years and months
+// Define the route to populate revenue data
 app.get("/populate-revenue", async (req, res) => {
+  const currentDate = new Date();
+  const currentTimestamp = currentDate.getTime();
+
+  // Read the last execution timestamp from the file
+  let lastExecutionTimestamp = 0;
   try {
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const yearsToCalculate = 10;
+    const timestampContent = await fs.readFile(timestampFilePath, "utf8");
+    lastExecutionTimestamp = parseInt(timestampContent, 10);
+  } catch (readError) {
+    // Log the error or handle it appropriately
+    console.error("Error reading timestamp file:", readError.message);
+  }
 
-    // Array to hold all the promises for revenue calculation
-    const promises = [];
+  // Calculate the time difference in hours
+  const hoursSinceLastExecution = calculateTimeDifference(
+    lastExecutionTimestamp,
+    currentTimestamp
+  );
 
-    for (
-      let year = currentYear;
-      year <= currentYear + yearsToCalculate;
-      year++
-    ) {
-      const totalMonths =
-        year === currentYear + yearsToCalculate
-          ? currentDate.getMonth() + 1
-          : 12;
+  // Check if more than 2 hours have passed since the last execution
+  if (hoursSinceLastExecution >= 2) {
+    try {
+      // Update the timestamp file with the current timestamp
+      await fs.writeFile(timestampFilePath, currentTimestamp.toString());
 
-      // Create an array of months for the current year
-      const monthsArray = Array.from(
-        { length: totalMonths },
-        (_, month) => month + 1
-      );
+      const currentYear = currentDate.getFullYear();
+      const yearsToCalculate = 15;
 
-      // Execute revenue calculation for all months of the current year concurrently
-      const yearPromises = monthsArray.map(async (month) => {
-        try {
-          const { monthlyRevenue } = await calculateRevenue(year, month);
-        } catch (error) {
-          // // // console.error(
-          //   `Error calculating revenue for ${year}-${month}:`,
-          //   error.message
-          // );
-        }
-      });
+      // Array to hold all the promises for revenue calculation
+      const promises = [];
 
-      promises.push(...yearPromises);
+      for (let year = 2023; year <= currentYear + yearsToCalculate; year++) {
+        const totalMonths =
+          year === currentYear + yearsToCalculate
+            ? currentDate.getMonth() + 1
+            : 12;
+
+        // Create an array of months for the current year
+        const monthsArray = Array.from(
+          { length: totalMonths },
+          (_, month) => month + 1
+        );
+
+        // Execute revenue calculation for all months of the current year concurrently
+        const yearPromises = monthsArray.map(async (month) => {
+          try {
+            const { monthlyRevenue } = await calculateRevenue(year, month);
+            // Process or log monthlyRevenue if needed
+          } catch (error) {
+            // Log the error or handle it appropriately
+            console.error(
+              `Error calculating revenue for ${year}-${month}:`,
+              error.message
+            );
+          }
+        });
+
+        promises.push(...yearPromises);
+      }
+
+      // Wait for all promises to resolve
+      await Promise.all(promises);
+
+      res.json({ message: "Revenue data population completed" });
+    } catch (error) {
+      // Log the error or handle it appropriately
+      console.error("Error populating revenue data:", error.message);
+      res.status(500).json({ error: "Internal server error" });
     }
-
-    // Wait for all promises to resolve
-    await Promise.all(promises);
-
-    res.json({ message: "Revenue data population completed" });
-  } catch (error) {
-    // // console.error("Error populating revenue data:", error);
-    res.status(500).json({ error: "Internal server error" });
+  } else {
+    res.json({
+      message: "Not enough time has passed since the last execution",
+    });
   }
 });
+
+// Function to calculate the time difference in hours
+function calculateTimeDifference(previousTime, currentTime) {
+  const timeDifference = currentTime - previousTime;
+  const hoursDifference = timeDifference / (1000 * 60 * 60); // Convert milliseconds to hours
+  return hoursDifference;
+}
 
 // CREATE (Inserting a Document)
 app.post("/all-create", async (req, res) => {
@@ -3486,36 +3560,6 @@ app.delete("/wallet/:walletId", async (req, res) => {
   }
 });
 
-// Endpoint to delete images not found in the provided image URLs list
-// app.delete("/deleteOrphanImages", async (req, res) => {
-//   try {
-//     const { imageUrls } = req.body; // Assuming imageUrls is an array of image URLs
-
-//     // Fetch all image names from Cloudinary
-//     const cloudinaryImageNames = await cloudinary.api.resources({
-//       type: "upload",
-//     });
-
-//     const cloudinaryImageNamesArray = cloudinaryImageNames.resources.map(
-//       (image) => image.public_id
-//     );
-
-//     // Find images in Cloudinary that are not present in the provided image URLs list
-//     const imagesToDelete = cloudinaryImageNamesArray.filter(
-//       (imageName) => !imageUrls.includes(imageName)
-//     );
-
-//     // Delete images from Cloudinary that are not found in the provided image URLs list
-//     for (const imageName of imagesToDelete) {
-//       await cloudinary.uploader.destroy(imageName);
-//     }
-
-//     res.status(200).json({ message: "Orphan images deleted successfully" });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-
 app.get("/expense-per-year", async (req, res) => {
   try {
     const expenseData = await ExpenseModel.aggregate([
@@ -3767,10 +3811,16 @@ app.get("/branch-users/:objectId", async (req, res) => {
 
       if (branchName) {
         // Find the manager for the specific branch
-        const manager = await allusersModel.findOne({ branchName, userType: "manager" });
+        const manager = await allusersModel.findOne({
+          branchName,
+          userType: "manager",
+        });
 
         // Find all agents under the specific branch
-        const agents = await allusersModel.find({ branchName, userType: "agent" });
+        const agents = await allusersModel.find({
+          branchName,
+          userType: "agent",
+        });
 
         // Combine manager and agents into a single array
         const branchUsers = [manager, ...agents];
@@ -3853,7 +3903,7 @@ app.get("/switch-database/:dbName", async (req, res) => {
 });
 
 // Endpoint to get total due amount and total amount paid for this month
-app.get('/totals-this-month', async (req, res) => {
+app.get("/totals-this-month", async (req, res) => {
   try {
     // Get the current month and year
     const currentDate = new Date();
@@ -3877,7 +3927,7 @@ app.get('/totals-this-month', async (req, res) => {
       {
         $group: {
           _id: null,
-          totalDueAmount: { $sum: '$dueAmount' },
+          totalDueAmount: { $sum: "$dueAmount" },
         },
       },
     ]);
@@ -3895,14 +3945,20 @@ app.get('/totals-this-month', async (req, res) => {
       {
         $group: {
           _id: null,
-          totalAmountPaid: { $sum: '$dueAmountPaid' },
+          totalAmountPaid: { $sum: "$dueAmountPaid" },
         },
       },
     ]);
 
     const result = {
-      totalDueAmountThisMonth: totalDueAmountThisMonth.length > 0 ? totalDueAmountThisMonth[0].totalDueAmount : 0,
-      totalAmountPaidThisMonth: totalAmountPaidThisMonth.length > 0 ? totalAmountPaidThisMonth[0].totalAmountPaid : 0,
+      totalDueAmountThisMonth:
+        totalDueAmountThisMonth.length > 0
+          ? totalDueAmountThisMonth[0].totalDueAmount
+          : 0,
+      totalAmountPaidThisMonth:
+        totalAmountPaidThisMonth.length > 0
+          ? totalAmountPaidThisMonth[0].totalAmountPaid
+          : 0,
     };
 
     res.json(result);
@@ -3914,25 +3970,30 @@ app.get('/totals-this-month', async (req, res) => {
 // Endpoint to fetch repaymentDetails data with populated Member Name from AccountModel
 app.get("/recentCollection", async (req, res) => {
   try {
-    const repaymentDetails = await RepaymentDetails.find({})
-      .lean();
+    const repaymentDetails = await RepaymentDetails.find({}).lean();
 
     // Retrieve memberName from AccountModel using accountId
-    const formattedData = await Promise.all(repaymentDetails.map(async (detail) => {
-      const account = await AccountModel.findOne({ accountId: repaymentDetails.accountId }).lean();
-      return {
-        Date: detail.paymentDate,
-        "Member Name": account ? account.memberName : 'N/A', // If account or memberName is not found, set as 'N/A'
-        "Account Number": detail.accountId,
-        Amount: detail.dueAmountPaid,
-        Status: (detail.dueAmountPaid > 0) ? 'Paid' : 'Unpaid'
-      };
-    }));
+    const formattedData = await Promise.all(
+      repaymentDetails.map(async (detail) => {
+        const account = await AccountModel.findOne({
+          accountId: repaymentDetails.accountId,
+        }).lean();
+        return {
+          Date: detail.paymentDate,
+          "Member Name": account ? account.memberName : "N/A", // If account or memberName is not found, set as 'N/A'
+          "Account Number": detail.accountId,
+          Amount: detail.dueAmountPaid,
+          Status: detail.dueAmountPaid > 0 ? "Paid" : "Unpaid",
+        };
+      })
+    );
 
     res.status(200).json({ RecentCollection: formattedData });
   } catch (error) {
     // // console.error("Error retrieving recent collection data:", error);
-    res.status(500).json({ message: "Error retrieving recent collection data" });
+    res
+      .status(500)
+      .json({ message: "Error retrieving recent collection data" });
   }
 });
 
