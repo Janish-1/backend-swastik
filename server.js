@@ -39,24 +39,24 @@ const PORT = 3001;
 
 app.use(bodyParser.json());
 
-// // Production
-// // Allow requests from specific origins
-// const allowedOrigins = ['https://admin.swastikcredit.in', 'http://admin.swastikcredit.in'];
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-// };
+// Production
+// Allow requests from specific origins
+const allowedOrigins = ['https://admin.swastikcredit.in', 'http://admin.swastikcredit.in'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+};
 
-// // Use CORS middleware with options
-// app.use(cors(corsOptions));
+// Use CORS middleware with options
+app.use(cors(corsOptions));
 
-// Development
-app.use(cors());
+// // Development
+// app.use(cors());
 
 const memberSchema = new mongoose.Schema(
   {
