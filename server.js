@@ -39,24 +39,24 @@ const PORT = 3001;
 
 app.use(bodyParser.json());
 
-// Production
-// Allow requests from specific origins
-const allowedOrigins = ['https://admin.swastikcredit.in', 'http://admin.swastikcredit.in'];
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-};
+// // Production
+// // Allow requests from specific origins
+// const allowedOrigins = ['https://admin.swastikcredit.in', 'http://admin.swastikcredit.in'];
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+// };
 
-// Use CORS middleware with options
-app.use(cors(corsOptions));
+// // Use CORS middleware with options
+// app.use(cors(corsOptions));
 
-// // Development
-// app.use(cors());
+// Development
+app.use(cors());
 
 const memberSchema = new mongoose.Schema(
   {
@@ -2717,31 +2717,19 @@ app.get("/calculate-revenue", async (req, res) => {
 
       let monthlyRevenue = 0;
 
-      const activeLoans = await loansModel
-        .find({
-          $or: [
-            {
-              $and: [
-                { releaseDate: { $lte: endDate } },
-                {
-                  $or: [
-                    { endDate: { $gte: startDate, $lte: endDate } }, // Consider year for endDate
-                    { endDate: { $exists: false } },
-                  ],
-                },
-              ],
-            },
-            {
-              $and: [
-                { releaseDate: { $gte: startDate, $lte: endDate } }, // Consider year for releaseDate
-                { endDate: { $exists: false } },
-              ],
-            },
-          ],
-        })
-        .select("loanId");
+      const activeLoans = await loansModel.find({
+        $and: [
+          { releaseDate: { $lte: endDate } },
+          {
+            $or: [
+              { endDate: { $gte: startDate, $lte: endDate } }, // Consider year for endDate
+              { endDate: { $exists: false } },
+            ],
+          },
+        ],
+      });
 
-      const loanIds = activeLoans.map((loan) => loan.loanId);
+      const loanIds = activeLoans.map((loan) => loan._id);
 
       for (const loanId of loanIds) {
         const repayments = await repaymentModel.find({ loanId });
@@ -2760,6 +2748,7 @@ app.get("/calculate-revenue", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 const calculateRevenue = async (year, month) => {
   return new Promise(async (resolve, reject) => {
