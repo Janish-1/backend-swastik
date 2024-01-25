@@ -2715,24 +2715,23 @@ app.get("/calculate-revenue", async (req, res) => {
       // Set the end date to the end of the day to include the full month
       endDate.setHours(23, 59, 59, 999);
 
+      const allLoans = await loansModel.find({});
+      const activeLoans = [];
+      
+      for (const loan of allLoans) {
+        const isReleaseDateValid = new Date(loan.releaseDate) <= endDate;
+        const isEndDateValid =
+          loan.endDate === undefined || new Date(loan.endDate) >= startDate;
+      
+        if (isReleaseDateValid && isEndDateValid) {
+          activeLoans.push(loan);
+        }
+      }      
+            
       let monthlyRevenue = 0;
 
-      const activeLoans = await loansModel.find({
-        $and: [
-          { releaseDate: { $lte: endDate } },
-          {
-            $or: [
-              { endDate: { $gte: startDate, $lte: endDate } }, // Consider year for endDate
-              { endDate: { $exists: false } },
-            ],
-          },
-        ],
-      });
-
-      const loanIds = activeLoans.map((loan) => loan._id);
-
-      for (const loanId of loanIds) {
-        const repayments = await repaymentModel.find({ loanId });
+      for (const loan of activeLoans) {
+        const repayments = await repaymentModel.find({ loanId: loan.loanId });
         for (const repayment of repayments) {
           const { dueAmount, interest } = repayment;
           monthlyRevenue += dueAmount * (interest / 100);
@@ -2741,10 +2740,10 @@ app.get("/calculate-revenue", async (req, res) => {
 
       totalRevenue += monthlyRevenue;
     }
-
+    
     res.json({ year, totalRevenue });
   } catch (error) {
-    // console.error("Error calculating revenue:", error);
+    console.error("Error calculating revenue:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
