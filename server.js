@@ -18,10 +18,6 @@ dotenv.config({ path: envPath });
 
 require("dotenv").config(); // Load environment variables from .env file
 
-// // Development
-// const uri = process.env.MONGODB_URI;
-
-// Production
 const uri = process.env.MONGODB_URI;
 
 const timestampFilePath = "last_execution_timestamp.txt";
@@ -39,28 +35,11 @@ const PORT = 3001;
 
 app.use(bodyParser.json());
 
-// Production
-// Allow requests from specific origins
-const allowedOrigins = ['https://admin.swastikcredit.in', 'http://admin.swastikcredit.in'];
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-};
-
-// Use CORS middleware with options
-app.use(cors(corsOptions));
-
-// // Development
-// app.use(cors());
+app.use(cors());
 
 const memberSchema = new mongoose.Schema(
   {
-    memberNo: { type: Number, required: true, unique: true },
+    memberNo: { type: String , required: true, unique: true },
     branchName: { type: String, required: true },
     fullName: { type: String, required: true },
     photo: { type: String }, // This could be a URL or path to the image file
@@ -184,8 +163,6 @@ const RepaymentDetails = mongoose.model(
 
 mongoose.connect(uri, {
   dbName: "commondatabase",
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
 });
 
 // Event handling for successful connection
@@ -299,8 +276,6 @@ const accountids = new mongoose.Schema(
 
 loginDB = mongoose.createConnection(uri, {
   dbName: "logindatabase",
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
 });
 
 // Event handling for successful connection
@@ -374,8 +349,6 @@ app.post("/all-login", async (req, res) => {
         .then(() => {
           return mongoose.connect(uri, {
             dbName: "admindatabase",
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
           });
         })
         .then(() => {
@@ -404,8 +377,6 @@ app.post("/all-login", async (req, res) => {
         .then(() => {
           return mongoose.connect(uri, {
             dbName,
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
           });
         })
         .then(() => {
@@ -434,8 +405,6 @@ app.post("/all-login", async (req, res) => {
         .then(() => {
           return mongoose.connect(uri, {
             dbName,
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
           });
         })
         .then(() => {
@@ -881,7 +850,7 @@ app.post("/createmember", upload.single("image"), async (req, res) => {
       fullName,
       email,
       branchName,
-      photo: imageUrl || null, // Use the uploaded image URL if available, otherwise null
+      photo,
       fatherName,
       gender,
       maritalStatus,
@@ -2510,21 +2479,32 @@ app.post("/getuseremailpassword", async (req, res) => {
 });
 
 app.get("/randomgenMemberId", async (req, res) => {
-  const min = 52; // Minimum number (52)
-  const max = 9999999999; // Maximum number (9999999999)
-  const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min; // Generate a random number within the specified range
+  try {
+    // Find the highest memberNo currently in use
+    const latestMemberIdDoc = await memberidsModel.findOne().sort({ memberNo: -1 });
 
-  const uniqueid = randomNumber.toString().padStart(10, "0"); // Format the number to have at least 10 digits
+    // Determine the next memberNo
+    let nextMemberNo;
+    if (!latestMemberIdDoc) {
+      // If there are no members yet, start from your base number
+      nextMemberNo = 52; // Starting point
+    } else {
+      // Increment the last used memberNo by 1
+      nextMemberNo = latestMemberIdDoc.memberNo + 1;
+    }
 
-  const existingMember = await memberidsModel.findOne(
-    { memberNo: uniqueid },
-    "memberNo"
-  );
+    // Save the new member ID (if required, depends on your application logic)
+    // const newMemberId = new memberidsModel({ memberNo: nextMemberNo });
+    // await newMemberId.save();
 
-  if (!existingMember) {
+    // Convert the ID to a string with leading zeros for presentation
+    const uniqueid = nextMemberNo.toString().padStart(8, '0');
+
+    // Return the unique ID to the client
     res.json({ uniqueid });
-  } else {
-    res.status(500).json({ error: "Generated ID already exists" });
+  } catch (error) {
+    console.error("Error generating unique member ID:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -3859,8 +3839,6 @@ app.get("/switch-database/:dbName", async (req, res) => {
       .then(() => {
         return mongoose.connect(uri, {
           dbName,
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
         });
       })
       .then(() => {
@@ -3883,7 +3861,7 @@ app.get("/switch-database/:dbName", async (req, res) => {
         // // console.error("Error:", err);
       });
 
-    res.json({ message: "Database switched successfully" });
+    res.json({ message: "Branch switched successfully" });
   } catch (error) {
     // // console.error("Switch Database Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
