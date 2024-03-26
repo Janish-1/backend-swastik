@@ -68,7 +68,7 @@ const loanSchema = new mongoose.Schema(
     loanId: { type: Number, required: true, unique: true },
     loanProduct: { type: String, required: true },
     memberName: { type: String, required: true },
-    memberNo: { type: Number, required: true },
+    memberNo: { type: String, required: true },
     pan: { type: String, required: true },
     aadhar: { type: String, required: true },
     releaseDate: { type: Date, required: true },
@@ -102,7 +102,7 @@ const accountSchema = new mongoose.Schema(
   {
     accountNumber: { type: Number, required: true, unique: true },
     memberName: { type: String, required: true },
-    memberNo: { type: Number, required: true },
+    memberNo: { type: String, required: true },
     email: { type: String, required: true },
     branchName: { type: String, required: true },
     accountType: { type: String },
