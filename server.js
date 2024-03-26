@@ -3985,3 +3985,7 @@ app.post("/uploadsignature", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+app.get("/", (req, res) => {
+  res.send("Server is running!");
+});
