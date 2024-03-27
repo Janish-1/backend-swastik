@@ -39,7 +39,7 @@ app.use(cors());
 
 const memberSchema = new mongoose.Schema(
   {
-    memberNo: { type: String , required: true, unique: true },
+    memberNo: { type: String, required: true, unique: true },
     branchName: { type: String, required: true },
     fullName: { type: String, required: true },
     photo: { type: String }, // This could be a URL or path to the image file
@@ -161,25 +161,6 @@ const RepaymentDetails = mongoose.model(
   repaymentDetailsSchema
 );
 
-mongoose.connect(uri, {
-  dbName: "commondatabase",
-});
-
-// Event handling for successful connection
-mongoose.connection.on("connected", () => {
-  // // // console.log("Connected to MongoDB(Common)");
-});
-
-// Event handling for disconnection
-mongoose.connection.on("disconnected", () => {
-  // // // console.log("Disconnected from MongoDB(Common)");
-});
-
-// Event handling for error
-mongoose.connection.on("error", (err) => {
-  // // // console.error("Connection error:", err);
-});
-
 const expenseSchema = new mongoose.Schema(
   {
     date: { type: Date, default: Date.now },
@@ -280,17 +261,17 @@ loginDB = mongoose.createConnection(uri, {
 
 // Event handling for successful connection
 loginDB.on("connected", () => {
-  // // // console.log("Connected to loginDB");
+  console.log("Connected to loginDB");
 });
 
 // Event handling for disconnection
 loginDB.on("disconnected", () => {
-  // // // console.log("Disconnected from loginDB");
+  console.log("Disconnected from loginDB");
 });
 
 // Event handling for error
 loginDB.on("error", (err) => {
-  // // // console.error("Connection error:", err);
+  console.error("Connection error:", err);
 });
 
 const allusersModel = loginDB.model("allusers", userdetailsSchema);
@@ -318,14 +299,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Implement rate limiting (example using 'express-rate-limit' middleware)
-const rateLimit = require("express-rate-limit");
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // limit each IP to 100 requests per windowMs
-});
-
 app.post("/all-login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -340,10 +313,17 @@ app.post("/all-login", async (req, res) => {
       return res.status(401).json({ message: "Invalid Password" });
     }
 
-    let dbName; // Define dbName here
+    let database = ""; // Define dbName here
 
     // Check if the user is an admin, if so, set the global variable
     if (user.userType === "admin") {
+      database = "admindatabase";
+      // Update the user's dbName in the database
+      await allusersModel.findByIdAndUpdate(
+        user._id, // user's ID
+        { $set: { dbName: database } }, // setting dbName field to dbName determined above
+        { new: true } // to return the updated document
+      );
       mongoose.connection
         .close()
         .then(() => {
@@ -354,17 +334,17 @@ app.post("/all-login", async (req, res) => {
         .then(() => {
           // Event handling for successful connection
           mongoose.connection.on("connected", () => {
-            // // // console.log("Connected to MongoDB(Admin)");
+            console.log("Connected to MongoDB(Admin)");
           });
 
           // Event handling for disconnection
           mongoose.connection.on("disconnected", () => {
-            // // // console.log("Disconnected from MongoDB(Admin)");
+            console.log("Disconnected from MongoDB(Admin)");
           });
 
           // Event handling for error
           mongoose.connection.on("error", (err) => {
-            // // // console.error("Connection error:", err);
+            console.error("Connection error:", err);
           });
         })
         .catch((err) => {
@@ -372,6 +352,13 @@ app.post("/all-login", async (req, res) => {
         });
     } else if (user.userType === "manager") {
       dbName = `manager_${user._id.toString()}`; // Prefix with "manager_"
+      database = dbName;
+      // Update the user's dbName in the database
+      await allusersModel.findByIdAndUpdate(
+        user._id, // user's ID
+        { $set: { dbName: database } }, // setting dbName field to dbName determined above
+        { new: true } // to return the updated document
+      );
       mongoose.connection
         .close()
         .then(() => {
@@ -382,24 +369,31 @@ app.post("/all-login", async (req, res) => {
         .then(() => {
           // Event handling for successful connection
           mongoose.connection.on("connected", () => {
-            // // // console.log("Connected to MongoDB(Manager)");
+            console.log("Connected to MongoDB(Manager)");
           });
 
           // Event handling for disconnection
           mongoose.connection.on("disconnected", () => {
-            // // // console.log("Disconnected from MongoDB(Manger)");
+            console.log("Disconnected from MongoDB(Manger)");
           });
 
           // Event handling for error
           mongoose.connection.on("error", (err) => {
-            // // // console.error("Connection error:", err);
+            console.error("Connection error:", err);
           });
         })
         .catch((err) => {
-          // // // console.error("Error:", err);
+          console.error("Error:", err);
         });
     } else if (user.userType === "agent") {
       dbName = `agent_${user._id.toString()}`; // Prefix with "manager_"
+      database = dbName;
+      // Update the user's dbName in the database
+      await allusersModel.findByIdAndUpdate(
+        user._id, // user's ID
+        { $set: { dbName: database } }, // setting dbName field to dbName determined above
+        { new: true } // to return the updated document
+      );
       mongoose.connection
         .close()
         .then(() => {
@@ -410,35 +404,28 @@ app.post("/all-login", async (req, res) => {
         .then(() => {
           // Event handling for successful connection
           mongoose.connection.on("connected", () => {
-            // // // console.log("Connected to MongoDB(agent)");
+            console.log("Connected to MongoDB(agent)");
           });
 
           // Event handling for disconnection
           mongoose.connection.on("disconnected", () => {
-            // // // console.log("Disconnected from MongoDB(agent)");
+            console.log("Disconnected from MongoDB(agent)");
           });
 
           // Event handling for error
           mongoose.connection.on("error", (err) => {
-            // // // console.error("Connection error:", err);
+            console.error("Connection error:", err);
           });
         })
         .catch((err) => {
-          // // // console.error("Error:", err);
+          console.error("Error:", err);
         });
     } else {
-      // // // console.error("Invalid Role");
+      console.error("Invalid Role");
     }
 
     // Update the user object with dbName
-    user.dbName = dbName;
-
-    // Update the user's dbName in the database
-    await allusersModel.findByIdAndUpdate(
-      user._id, // user's ID
-      { $set: { dbName } }, // setting dbName field to dbName determined above
-      { new: true } // to return the updated document
-    );
+    user.database = database;
 
     // User authentication successful, create payload for JWT
     const payload = {
@@ -446,10 +433,11 @@ app.post("/all-login", async (req, res) => {
       email: user.email,
       username: user.name, // Make sure to replace this with the correct user field for username
       role: user.userType,
-      db: user.dbName,
+      db: user.database,
       branch: user.branchName,
       // Add other necessary user information to the payload
     };
+
     const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" });
 
     res.json({ message: "Login Success!", token });
@@ -479,11 +467,9 @@ app.post("/create", async (req, res) => {
   } = req.body;
 
   let role = "user";
-  const userEmailDomain = email.split("@")[1]; // Extract domain from email
-  // // // console.log("User email domain:", userEmailDomain); // Check the extracted domain
+  const userEmailDomain = email.split("@")[1];
   if (userEmailDomain === "yourcompany.com") {
-    role = "admin"; // Assign admin role for specific email domain
-    // // // console.log("User role:", role); // Check the role being assigned
+    role = "admin";
   }
 
   try {
@@ -835,9 +821,8 @@ app.post("/createmember", upload.single("image"), async (req, res) => {
 
     // Check if there is an uploaded image
     if (req.file) {
-      const base64String = `data:${
-        req.file.mimetype
-      };base64,${req.file.buffer.toString("base64")}`;
+      const base64String = `data:${req.file.mimetype
+        };base64,${req.file.buffer.toString("base64")}`;
       const result = await cloudinary.uploader.upload(base64String, {
         resource_type: "auto",
       });
@@ -914,9 +899,8 @@ app.post("/uploadimage", upload.single("imageone"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const base64String = `data:${
-      req.file.mimetype
-    };base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${req.file.mimetype
+      };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -1976,9 +1960,8 @@ app.post("/upload", upload.single("image"), async (req, res) => {
     }
 
     // Convert the buffer to a base64 data URL
-    const base64String = `data:${
-      req.file.mimetype
-    };base64,${req.file.buffer.toString("base64")}`;
+    const base64String = `data:${req.file.mimetype
+      };base64,${req.file.buffer.toString("base64")}`;
 
     const result = await cloudinary.uploader.upload(base64String, {
       resource_type: "auto", // Specify the resource type if necessary
@@ -2697,17 +2680,17 @@ app.get("/calculate-revenue", async (req, res) => {
 
       const allLoans = await loansModel.find({});
       const activeLoans = [];
-      
+
       for (const loan of allLoans) {
         const isReleaseDateValid = new Date(loan.releaseDate) <= endDate;
         const isEndDateValid =
           loan.endDate === undefined || new Date(loan.endDate) >= startDate;
-      
+
         if (isReleaseDateValid && isEndDateValid) {
           activeLoans.push(loan);
         }
-      }      
-            
+      }
+
       let monthlyRevenue = 0;
 
       for (const loan of activeLoans) {
@@ -2720,7 +2703,7 @@ app.get("/calculate-revenue", async (req, res) => {
 
       totalRevenue += monthlyRevenue;
     }
-    
+
     res.json({ year, totalRevenue });
   } catch (error) {
     console.error("Error calculating revenue:", error);
