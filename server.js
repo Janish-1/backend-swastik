@@ -18,7 +18,7 @@ dotenv.config({ path: envPath });
 
 require("dotenv").config(); // Load environment variables from .env file
 
-const uri = process.env.MONGODB_URI;
+const uri = "mongodb+srv://swastikcredit8:swastikcredit8@cluster0.g5uzyvg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 const timestampFilePath = "last_execution_timestamp.txt";
 
