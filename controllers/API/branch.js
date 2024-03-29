@@ -6,7 +6,7 @@ const createBranch = async (req, res) => {
   const { branchCode, branchName, name, email, password, contactphone, branchaddress, userType } = req.body;
 
   try {
-    const newUser = new userModel({
+    const newUser = new allusersModel({
       branchName,
       name,
       email,
@@ -36,7 +36,7 @@ const updateBranch = async (req, res) => {
   const { branchCode, branchName, name, email, password, contactphone, branchaddress, userType } = req.body;
 
   try {
-    const updatedBranch = await userModel.findByIdAndUpdate(
+    const updatedBranch = await allusersModel.findByIdAndUpdate(
       branchId,
       {
         branchCode,

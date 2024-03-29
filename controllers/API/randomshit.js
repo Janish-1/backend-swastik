@@ -1,6 +1,18 @@
 const { memberModel, loansModel, repaymentModel, AccountModel, TransactionsModel, RepaymentDetails } = require('../../models/restdb');
 const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, memberidsModel, loanidModel, accountidModel } = require("../../models/logindb");
 const mongoose = require('mongoose');
+const fs = require('fs').promises;
+const dotenv = require("dotenv");
+const path = require("path");
+
+// Specify the absolute path to your .env file
+const envPath = path.resolve(__dirname, "../.env");
+// Load environment variables from the specified .env file
+dotenv.config({ path: envPath });
+
+// MongoDB connection URL
+const uri = process.env.MONGODB_URI;
+const timestampFilePath = "last_execution_timestamp.txt";
 
 const getUserEmailPasswordHandler = async (req, res) => {
   const { token } = req.body;
@@ -170,6 +182,64 @@ const calculateRevenueHandler = async (req, res) => {
   }
 };
 
+// Function to calculate the time difference in hours
+function calculateTimeDifference(previousTime, currentTime) {
+  const timeDifference = currentTime - previousTime;
+  const hoursDifference = timeDifference / (1000 * 60 * 60); // Convert milliseconds to hours
+  return hoursDifference;
+}
+
+const calculateRevenue = async (year, month) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
+
+      let monthlyRevenue = 0;
+
+      const activeLoans = await loansModel
+        .find({
+          $or: [
+            {
+              $and: [
+                { releaseDate: { $lte: endDate } },
+                { endDate: { $gte: startDate } },
+              ],
+            },
+            {
+              $and: [
+                { releaseDate: { $gte: startDate } },
+                { endDate: { $exists: false } },
+              ],
+            },
+          ],
+        })
+        .select("loanId");
+
+      const loanIds = activeLoans.map((loan) => loan.loanId);
+
+      for (const loanId of loanIds) {
+        const repayments = await repaymentModel.find({ loanId });
+        for (const repayment of repayments) {
+          const { dueAmount, interest } = repayment;
+          monthlyRevenue += dueAmount * (interest / 100);
+        }
+      }
+
+      const filter = { year, month };
+      const update = { year, month, monthlyRevenue };
+      const options = { upsert: true, new: true };
+
+      await Revenue.findOneAndUpdate(filter, update, options);
+
+      resolve({ monthlyRevenue });
+    } catch (error) {
+      // // console.error("Error calculating revenue:", error);
+      reject(new Error("Internal server error"));
+    }
+  });
+};
+
 const populateRevenueHandler = async (req, res) => {
   const currentDate = new Date();
   const currentTimestamp = currentDate.getTime();
@@ -234,6 +304,7 @@ const populateRevenueHandler = async (req, res) => {
     });
   }
 };
+
 const getAdminDatabasesHandler = async (req, res) => {
   try {
     // Find all databases where userType is 'admin'
@@ -274,39 +345,29 @@ const switchDatabaseHandler = async (req, res) => {
   const { dbName } = req.params;
 
   try {
-    mongoose.connection
-      .close()
-      .then(() => {
-        return mongoose.connect(uri, {
-          dbName,
-        });
-      })
-      .then(() => {
-        // Event handling for successful connection
-        mongoose.connection.on("connected", () => {
-          // console.log("Connected to MongoDB(agent)");
-        });
+    const newConnection = mongoose.createConnection(process.env.MONGODB_URI, {
+      dbName,
+    });
 
-        // Event handling for disconnection
-        mongoose.connection.on("disconnected", () => {
-          // console.log("Disconnected from MongoDB(agent)");
-        });
+    newConnection.on("connected", () => {
+      console.log("Connected to MongoDB - Secondary Connection");
+    });
 
-        // Event handling for error
-        mongoose.connection.on("error", (err) => {
-          // console.error("Connection error:", err);
-        });
-      })
-      .catch((err) => {
-        // console.error("Error:", err);
-      });
+    newConnection.on("disconnected", () => {
+      console.log("Disconnected from MongoDB - Secondary Connection");
+    });
+
+    newConnection.on("error", (err) => {
+      console.error("Connection error:", err);
+    });
 
     res.json({ message: "Branch switched successfully" });
   } catch (error) {
-    // console.error("Switch Database Error:", error);
+    console.error("Switch Database Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 const getTotalThisMonthHandler = async (req, res) => {
   try {
     // Get the current month and year

@@ -28,7 +28,7 @@ const create = async (req, res) => {
   }
 
   try {
-    const newUser = new userModel({
+    const newUser = new allusersModel({
       firstName,
       lastName,
       businessName,
@@ -59,7 +59,7 @@ const create = async (req, res) => {
 
 const readUsers = async (req, res) => {
   try {
-    const data = await userModel.find();
+    const data = await allusersModel.find();
     res.json(data);
   } catch (error) {
     console.error("Error fetching data:", error);
@@ -75,7 +75,7 @@ const updateUser = async (req, res) => {
     const filter = { _id: id };
     const update = { firstName, lastName, email, password, role, security };
 
-    const updatedUser = await userModel.findOneAndUpdate(
+    const updatedUser = await allusersModel.findOneAndUpdate(
       filter,
       update,
       { new: true }
@@ -94,7 +94,7 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   const { id } = req.params;
   try {
-    const deletedUser = await userModel.findByIdAndDelete(id);
+    const deletedUser = await allusersModel.findByIdAndDelete(id);
 
     if (!deletedUser) {
       return res.status(404).json({ message: "User not found" });

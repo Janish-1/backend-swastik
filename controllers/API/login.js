@@ -1,6 +1,17 @@
 const { memberModel, loansModel, repaymentModel, AccountModel, TransactionsModel, RepaymentDetails } = require('../../models/restdb');
 const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, memberidsModel, loanidModel, accountidModel } = require("../../models/logindb");
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const dotenv = require("dotenv");
+const path = require("path");
+
+// Specify the absolute path to your .env file
+const envPath = path.resolve(__dirname, "../.env");
+// Load environment variables from the specified .env file
+dotenv.config({ path: envPath });
+
+// MongoDB connection URL
+const uri = process.env.MONGODB_URI;
 
 const alllogin = async (req, res) => {
     const { email, password } = req.body;
@@ -27,32 +38,21 @@ const alllogin = async (req, res) => {
                 { $set: { dbName: database } }, // setting dbName field to dbName determined above
                 { new: true } // to return the updated document
             );
-            mongoose.connection
-                .close()
-                .then(() => {
-                    return mongoose.connect(uri, {
-                        dbName: "admindatabase",
-                    });
-                })
-                .then(() => {
-                    // Event handling for successful connection
-                    mongoose.connection.on("connected", () => {
-                        console.log("Connected to MongoDB(Admin)");
-                    });
+            const Connection = mongoose.createConnection(process.env.MONGODB_URI, {
+                dbName: database,
+            });
 
-                    // Event handling for disconnection
-                    mongoose.connection.on("disconnected", () => {
-                        console.log("Disconnected from MongoDB(Admin)");
-                    });
+            Connection.on("connected", () => {
+                console.log("Connected to MongoDB - Secondary Connection");
+            });
 
-                    // Event handling for error
-                    mongoose.connection.on("error", (err) => {
-                        console.error("Connection error:", err);
-                    });
-                })
-                .catch((err) => {
-                    // // // console.error("Error:", err);
-                });
+            Connection.on("disconnected", () => {
+                console.log("Disconnected from MongoDB - Secondary Connection");
+            });
+
+            Connection.on("error", (err) => {
+                console.error("Connection error:", err);
+            });
         } else if (user.userType === "manager") {
             dbName = `manager_${user._id.toString()}`; // Prefix with "manager_"
             database = dbName;
@@ -62,32 +62,21 @@ const alllogin = async (req, res) => {
                 { $set: { dbName: database } }, // setting dbName field to dbName determined above
                 { new: true } // to return the updated document
             );
-            mongoose.connection
-                .close()
-                .then(() => {
-                    return mongoose.connect(uri, {
-                        dbName,
-                    });
-                })
-                .then(() => {
-                    // Event handling for successful connection
-                    mongoose.connection.on("connected", () => {
-                        console.log("Connected to MongoDB(Manager)");
-                    });
+            const Connection = mongoose.createConnection(process.env.MONGODB_URI, {
+                dbName: database,
+            });
 
-                    // Event handling for disconnection
-                    mongoose.connection.on("disconnected", () => {
-                        console.log("Disconnected from MongoDB(Manger)");
-                    });
+            Connection.on("connected", () => {
+                console.log("Connected to MongoDB - Secondary Connection");
+            });
 
-                    // Event handling for error
-                    mongoose.connection.on("error", (err) => {
-                        console.error("Connection error:", err);
-                    });
-                })
-                .catch((err) => {
-                    console.error("Error:", err);
-                });
+            Connection.on("disconnected", () => {
+                console.log("Disconnected from MongoDB - Secondary Connection");
+            });
+
+            Connection.on("error", (err) => {
+                console.error("Connection error:", err);
+            });
         } else if (user.userType === "agent") {
             dbName = `agent_${user._id.toString()}`; // Prefix with "manager_"
             database = dbName;
@@ -97,32 +86,21 @@ const alllogin = async (req, res) => {
                 { $set: { dbName: database } }, // setting dbName field to dbName determined above
                 { new: true } // to return the updated document
             );
-            mongoose.connection
-                .close()
-                .then(() => {
-                    return mongoose.connect(uri, {
-                        dbName,
-                    });
-                })
-                .then(() => {
-                    // Event handling for successful connection
-                    mongoose.connection.on("connected", () => {
-                        console.log("Connected to MongoDB(agent)");
-                    });
+            const Connection = mongoose.createConnection(process.env.MONGODB_URI, {
+                dbName: database,
+            });
 
-                    // Event handling for disconnection
-                    mongoose.connection.on("disconnected", () => {
-                        console.log("Disconnected from MongoDB(agent)");
-                    });
+            Connection.on("connected", () => {
+                console.log("Connected to MongoDB - Secondary Connection");
+            });
 
-                    // Event handling for error
-                    mongoose.connection.on("error", (err) => {
-                        console.error("Connection error:", err);
-                    });
-                })
-                .catch((err) => {
-                    console.error("Error:", err);
-                });
+            Connection.on("disconnected", () => {
+                console.log("Disconnected from MongoDB - Secondary Connection");
+            });
+
+            Connection.on("error", (err) => {
+                console.error("Connection error:", err);
+            });
         } else {
             console.error("Invalid Role");
         }
@@ -154,7 +132,7 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const user = await userModel.findOne({ email });
+        const user = await allusersModel.findOne({ email });
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
@@ -178,6 +156,7 @@ const login = async (req, res) => {
 
         res.json({ message: "Login Success!", token });
     } catch (error) {
+        console.error("Error:", error); // Log the error
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
