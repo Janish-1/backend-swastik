@@ -1,0 +1,2 @@
+::ffff:127.0.0.1 - - [29/Mar/2024:08:20:42 +0000] "GET / HTTP/1.1" 200 18 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0"
+::ffff:127.0.0.1 - - [29/Mar/2024:08:20:42 +0000] "GET /favicon.ico HTTP/1.1" 404 150 "http://localhost:3001/" "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0"
