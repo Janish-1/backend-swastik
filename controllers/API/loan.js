@@ -3,31 +3,98 @@ const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, member
 const mongoose = require('mongoose');
 
 const createLoan = async (req, res) => {
-  const { loanId, loanProduct, memberName, memberNo, pan, aadhar, releaseDate, appliedAmount, status, account, endDate, durationMonths } = req.body;
+  const {
+    loanId,
+    loanProduct,
+    memberName,
+    memberNo,
+    pan,
+    aadhar,
+    releaseDate,
+    appliedAmount,
+    status,
+    account,
+    endDate,
+    durationMonths,
+  } = req.body;
+
   try {
-    const newLoan = new loansModel({ loanId, loanProduct, memberName, memberNo, pan, aadhar, releaseDate, appliedAmount, status, account, endDate, durationMonths });
+    const newLoan = new loansModel({
+      loanId,
+      loanProduct,
+      memberName,
+      memberNo,
+      pan,
+      aadhar,
+      releaseDate,
+      appliedAmount,
+      status,
+      account, // Convert account to ObjectId
+      endDate,
+      durationMonths,
+    });
+
     await newLoan.save();
+
     try {
-      await loanidModel.create({ loanId });
+      await loanidModel.create({ loanId: loanId });
     } catch (error) {
-      // console.error(error);
+      // // console.error(error);
     }
-    res.status(200).json({ message: "Loan data saved to MongoDB", data: newLoan });
+
+    res
+      .status(200)
+      .json({ message: "Loan data saved to MongoDB", data: newLoan });
   } catch (error) {
-    // console.error("Error saving loan data:", error);
+    // // console.error("Error saving loan data:", error);
     res.status(500).json({ message: "Error saving loan data" });
   }
 };
 
 const updateLoan = async (req, res) => {
   const loanId = req.params.id;
-  const { loanProduct, memberName, memberNo, releaseDate, pan, aadhar, appliedAmount, status, account, endDate, durationMonths } = req.body;
+  const {
+    loanProduct,
+    memberName,
+    memberNo,
+    releaseDate,
+    pan,
+    aadhar,
+    appliedAmount,
+    status,
+    account,
+    endDate,
+    durationMonths,
+  } = req.body;
+
   try {
-    const updatedLoan = await loansModel.findByIdAndUpdate(loanId, { loanProduct, memberName, memberNo, pan, aadhar, releaseDate, appliedAmount, status, account, endDate, durationMonths }, { new: true });
-    if (!updatedLoan) return res.status(404).json({ message: "Loan not found" });
-    res.status(200).json({ message: "Loan updated successfully", data: updatedLoan });
+    const updatedLoan = await loansModel.findByIdAndUpdate(
+      loanId,
+      {
+        loanProduct,
+        memberName,
+        memberNo,
+        pan,
+        aadhar,
+        releaseDate,
+        appliedAmount,
+        status,
+        account,
+        endDate,
+        durationMonths,
+      },
+      { new: true }
+    );
+
+    if (!updatedLoan) {
+      return res.status(404).json({ message: "Loan not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Loan updated successfully", data: updatedLoan });
   } catch (error) {
-    // console.error("Error updating loan:", error);
+    // // console.error("Error updating loan:", error);
     res.status(500).json({ message: "Error updating loan" });
   }
 };
@@ -36,10 +103,16 @@ const deleteLoan = async (req, res) => {
   const loanId = req.params.id;
   try {
     const deletedLoan = await loansModel.findByIdAndDelete(loanId);
-    if (!deletedLoan) return res.status(404).json({ message: "Loan not found" });
-    res.status(200).json({ message: "Loan deleted successfully", data: deletedLoan });
+
+    if (!deletedLoan) {
+      return res.status(404).json({ message: "Loan not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Loan deleted successfully", data: deletedLoan });
   } catch (error) {
-    // console.error("Error deleting loan:", error);
+    // // console.error("Error deleting loan:", error);
     res.status(500).json({ message: "Error deleting loan" });
   }
 };
@@ -47,9 +120,12 @@ const deleteLoan = async (req, res) => {
 const getAllLoans = async (req, res) => {
   try {
     const allLoans = await loansModel.find();
-    res.status(200).json({ message: "All loans retrieved successfully", data: allLoans });
+
+    res
+      .status(200)
+      .json({ message: "All loans retrieved successfully", data: allLoans });
   } catch (error) {
-    // console.error("Error retrieving loans:", error);
+    // // console.error("Error retrieving loans:", error);
     res.status(500).json({ message: "Error retrieving loans" });
   }
 };
@@ -57,22 +133,35 @@ const getAllLoans = async (req, res) => {
 const getLoansByMember = async (req, res) => {
   try {
     const memberNo = req.params.memberNo;
+
+    // Find loans based on the provided member number
     const loans = await loansModel.find({ memberNo });
-    res.status(200).json({ message: "Loans retrieved successfully for the member", data: loans });
+
+    res.status(200).json({
+      message: "Loans retrieved successfully for the member",
+      data: loans,
+    });
   } catch (error) {
-    // console.error("Error retrieving loans:", error);
+    // // console.error("Error retrieving loans:", error);
     res.status(500).json({ message: "Error retrieving loans" });
   }
 };
 
 const getLoanById = async (req, res) => {
   const loanId = req.params.id;
+
   try {
     const loan = await loansModel.findById(loanId);
-    if (!loan) return res.status(404).json({ message: "Loan not found" });
-    res.status(200).json({ message: "Loan retrieved successfully", data: loan });
+
+    if (!loan) {
+      return res.status(404).json({ message: "Loan not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Loan retrieved successfully", data: loan });
   } catch (error) {
-    // console.error("Error retrieving loan:", error);
+    // // console.error("Error retrieving loan:", error);
     res.status(500).json({ message: "Error retrieving loan" });
   }
 };
@@ -80,31 +169,60 @@ const getLoanById = async (req, res) => {
 const getLoanMembers = async (req, res) => {
   try {
     const allMembers = await memberModel.find({}, { memberNo: 1, _id: 0 });
+
     const memberNumbers = allMembers.map((member) => member.memberNo);
-    res.status(200).json({ message: "All member numbers retrieved successfully", data: memberNumbers });
+
+    res.status(200).json({
+      message: "All member numbers retrieved successfully",
+      data: memberNumbers,
+    });
   } catch (error) {
-    // console.error("Error retrieving member numbers:", error);
+    // // console.error("Error retrieving member numbers:", error); // Log the specific error
     res.status(500).json({ message: "Error retrieving member numbers" });
   }
 };
 
 const getApprovedLoans = async (req, res) => {
   try {
-    const approvedLoans = await loansModel.find({ status: "Approved" }, { loanId: 1, _id: 0 });
-    res.status(200).json({ message: "Approved loans retrieved successfully", data: approvedLoans });
+    const approvedLoans = await loansModel.find(
+      { status: "Approved" },
+      { loanId: 1, _id: 0 }
+    );
+    repaymen;
+    res.status(200).json({
+      message: "Approved loans retrieved successfully",
+      data: approvedLoans,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching approved loans", error: error.message });
+    // // console.error("Error fetching approved loans:", error);
+    res.status(500).json({ message: "Error fetching approved loans" });
   }
 };
 
 const getApprovedLoansNotInRepayment = async (req, res) => {
   try {
+    // Fetch all loan IDs in the repayment model
     const repaymentLoans = await repaymentModel.find({}, { loanId: 1, _id: 0 });
-    const repaymentLoanIds = repaymentLoans.map((repayment) => repayment.loanId);
-    const approvedLoansNotInRepayment = await loansModel.find({ status: "Approved", loanId: { $nin: repaymentLoanIds } }, { loanId: 1, _id: 0 });
-    res.status(200).json({ message: "Approved loans not in repayment retrieved successfully", data: approvedLoansNotInRepayment });
+    const repaymentLoanIds = repaymentLoans.map(
+      (repayment) => repayment.loanId
+    );
+
+    // Fetch approved loans that are not in the repayment model
+    const approvedLoansNotInRepayment = await loansModel.find(
+      { status: "Approved", loanId: { $nin: repaymentLoanIds } },
+      { loanId: 1, _id: 0 }
+    );
+
+    res.status(200).json({
+      message: "Approved loans not in repayment retrieved successfully",
+      data: approvedLoansNotInRepayment,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching approved loans not in repayment", error: error.message });
+    // Handle the error or log it
+    // console.error("Error fetching approved loans not in repayment:", error);
+    res
+      .status(500)
+      .json({ message: "Error fetching approved loans not in repayment" });
   }
 };
 
@@ -112,23 +230,43 @@ const generateLoanReport = async (req, res) => {
   try {
     const { startDate, endDate, loanType, memberNo } = req.body;
     let query = {};
-    if (startDate && endDate) query.releaseDate = { $gte: new Date(startDate), $lte: new Date(endDate) };
-    if (loanType) query.status = loanType;
-    if (memberNo) query.memberNo = memberNo;
-    const loans = await loansModel.find(query);
-    const mergedData = await Promise.all(loans.map(async (loan) => {
-      const repayment = await repaymentModel.findOne({ loanId: loan.loanId });
-      return {
-        loanId: loan.loanId,
-        loanProduct: loan.loanProduct,
-        memberName: loan.memberName,
-        memberNo: loan.memberNo,
-        releaseDate: loan.releaseDate,
-        appliedAmount: loan.appliedAmount,
-        status: loan.status,
-        dueAmount: repayment ? repayment.dueAmount : null,
+
+    // Adding filters based on provided request body
+    if (startDate && endDate) {
+      query.releaseDate = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
       };
-    }));
+    }
+
+    if (loanType) {
+      query.status = loanType;
+    }
+
+    if (memberNo) {
+      query.memberNo = memberNo;
+    }
+
+    // Filtering loans data based on query
+    const loans = await loansModel.find(query);
+
+    // Fetching dueAmount for each loanId
+    const mergedData = await Promise.all(
+      loans.map(async (loan) => {
+        const repayment = await repaymentModel.findOne({ loanId: loan.loanId });
+        return {
+          loanId: loan.loanId,
+          loanProduct: loan.loanProduct,
+          memberName: loan.memberName,
+          memberNo: loan.memberNo,
+          releaseDate: loan.releaseDate,
+          appliedAmount: loan.appliedAmount,
+          status: loan.status,
+          dueAmount: repayment ? repayment.dueAmount : null,
+        };
+      })
+    );
+
     res.status(200).json(mergedData);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -137,11 +275,24 @@ const generateLoanReport = async (req, res) => {
 
 const getLoanDue = async (req, res) => {
   try {
+    // Fetching loans data
     const loans = await loansModel.find({}, "loanId memberNo memberName");
-    const repayments = await repaymentModel.find({}, "loanId totalAmount fieldName1 fieldName2");
+
+    // Fetching repayments data with specific fields
+    const repayments = await repaymentModel.find(
+      {},
+      "loanId totalAmount fieldName1 fieldName2"
+    );
+
+    // Processing the data to calculate total due for each loan
     const processedData = loans.map((loan) => {
-      const loanRepayments = repayments.filter((repayment) => repayment.loanId.toString() === loan.loanId.toString());
-      const totalDue = loanRepayments.reduce((total, repayment) => total + repayment.totalAmount, 0);
+      const loanRepayments = repayments.filter(
+        (repayment) => repayment.loanId.toString() === loan.loanId.toString()
+      );
+      const totalDue = loanRepayments.reduce(
+        (total, repayment) => total + repayment.totalAmount,
+        0
+      );
       return {
         loanId: loan.loanId,
         memberNo: loan.memberNo,
@@ -149,17 +300,20 @@ const getLoanDue = async (req, res) => {
         totalDue: totalDue,
       };
     });
+
     res.status(200).json(processedData);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 const pendingLoansHandler = async (req, res) => {
   try {
     const pendingLoans = await loansModel.find({ status: "Pending" });
 
     res.status(200).json({ data: pendingLoans });
   } catch (error) {
+    // // console.error("Error retrieving pending loans:", error);
     res.status(500).json({ message: "Error retrieving pending loans" });
   }
 };
@@ -170,9 +324,11 @@ const totalLoansHandler = async (req, res) => {
 
     res.status(200).json({ totalLoans });
   } catch (error) {
+    // // console.error("Error retrieving total number of loans:", error);
     res.status(500).json({ message: "Error retrieving total number of loans" });
   }
 };
+
 const getTotalLoanAmountHandler = async (req, res) => {
   try {
     const totalLoanAmount = await loansModel.aggregate([
@@ -184,8 +340,11 @@ const getTotalLoanAmountHandler = async (req, res) => {
       },
     ]);
 
-    const amount = totalLoanAmount.length > 0 ? totalLoanAmount[0].totalAmount : 0;
-    res.json({ totalLoanAmount: amount });
+    if (totalLoanAmount.length > 0) {
+      res.json({ totalLoanAmount: totalLoanAmount[0].totalAmount });
+    } else {
+      res.json({ totalLoanAmount: 0 });
+    }
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -193,15 +352,19 @@ const getTotalLoanAmountHandler = async (req, res) => {
 
 const approveLoanHandler = async (req, res) => {
   const { loanId } = req.params;
+
   try {
+    // Assuming you have a LoanModel or a similar model/schema
     const loan = await loansModel.findByIdAndUpdate(
       loanId,
       { status: "Approved" },
       { new: true }
     );
+
     if (!loan) {
       return res.status(404).json({ message: "Loan not found" });
     }
+
     res.status(200).json({ message: "Loan status updated to Approved", loan });
   } catch (error) {
     res.status(500).json({
@@ -213,15 +376,19 @@ const approveLoanHandler = async (req, res) => {
 
 const cancelLoanHandler = async (req, res) => {
   const { loanId } = req.params;
+
   try {
+    // Assuming you have a LoanModel or a similar model/schema
     const loan = await loansModel.findByIdAndUpdate(
       loanId,
       { status: "Cancelled" },
       { new: true }
     );
+
     if (!loan) {
       return res.status(404).json({ message: "Loan not found" });
     }
+
     res.status(200).json({ message: "Loan status updated to Cancelled", loan });
   } catch (error) {
     res.status(500).json({
@@ -234,15 +401,19 @@ const cancelLoanHandler = async (req, res) => {
 const updateObjectionHandler = async (req, res) => {
   const { loanId } = req.params;
   const { reason } = req.body;
+
   try {
+    // Assuming you have a LoansModel or a similar model/schema
     const loan = await loansModel.findByIdAndUpdate(
       loanId,
       { objections: reason },
       { new: true }
     );
+
     if (!loan) {
       return res.status(404).json({ message: "Loan not found" });
     }
+
     res
       .status(200)
       .json({ message: "Objection column updated successfully", loan });
@@ -253,6 +424,7 @@ const updateObjectionHandler = async (req, res) => {
     });
   }
 };
+
 const updatePaymentAndCreateDetailsHandler = async (req, res) => {
   try {
     const repaymentId = req.params.repaymentId;
@@ -313,6 +485,10 @@ const updatePaymentAndCreateDetailsHandler = async (req, res) => {
         "Payment data updated and RepaymentDetails created successfully",
     });
   } catch (error) {
+    // // console.error(
+    //   "Error updating payment data and creating RepaymentDetails:",
+    //   error
+    // );
     res.status(500).json({ message: "Server Error" });
   }
 };

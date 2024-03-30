@@ -28,7 +28,7 @@ const create = async (req, res) => {
   }
 
   try {
-    const newUser = new allusersModel({
+    const newUser = new userModel({
       firstName,
       lastName,
       businessName,
@@ -59,11 +59,10 @@ const create = async (req, res) => {
 
 const readUsers = async (req, res) => {
   try {
-    const data = await allusersModel.find();
-    res.json(data);
+    const agents = await allusersModel.find();
+    res.status(200).json(agents);
   } catch (error) {
-    console.error("Error fetching data:", error);
-    res.status(500).json({ message: "Failed to fetch data" });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -72,13 +71,13 @@ const updateUser = async (req, res) => {
   const { firstName, lastName, email, password, role, security } = req.body;
 
   try {
-    const filter = { _id: id };
-    const update = { firstName, lastName, email, password, role, security };
+    const filter = { _id: id }; // Filter to find the user by id
+    const update = { firstName, lastName, email, password, role, security }; // Creates a new updated object
 
-    const updatedUser = await allusersModel.findOneAndUpdate(
+    const updatedUser = await userModel.findOneAndUpdate(
       filter,
       update,
-      { new: true }
+      { new: true } // Returns the updated document
     );
 
     if (!updatedUser) {
@@ -86,7 +85,7 @@ const updateUser = async (req, res) => {
     }
     res.status(200).json({ message: "User data updated", data: updatedUser });
   } catch (error) {
-    console.error("Error updating user data:", error);
+    // // // console.error("Error updating user data:", error);
     res.status(500).json({ message: "Error updating user data" });
   }
 };
@@ -94,31 +93,40 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   const { id } = req.params;
   try {
-    const deletedUser = await allusersModel.findByIdAndDelete(id);
+    const deletedUser = await userModel.findByIdAndDelete(id);
 
     if (!deletedUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: "User deleted successfully", data: deletedUser });
+    res
+      .status(200)
+      .json({ message: "User deleted successfully", data: deletedUser });
   } catch (error) {
-    console.error("Error deleting user:", error);
+    // // // // console.error("Error deleting user:", error);
     res.status(500).json({ message: "Error deleting user" });
   }
 };
 
 const getUsernameData = (req, res) => {
   const { token } = req.body;
+  // Check if the token exists
   if (!token) {
     return res.status(401).json({ error: "Token is missing" });
   }
 
   try {
+    // Verify and decode the token to extract the username
     const decoded = jwt.verify(token, "yourSecretKey");
+
+    // Extract the username from the decoded token payload
     const { username } = decoded;
+
+    // Send the decoded username back to the client
     res.json({ username });
   } catch (err) {
-    console.error("Token verification error:", err);
+    // Handle token verification or decoding errors
+    // // // console.error("Token verification error:", err);
     res.status(401).json({ error: "Unauthorized" });
   }
 };
@@ -126,12 +134,31 @@ const getUsernameData = (req, res) => {
 const createUser = async (req, res) => {
   try {
     const { name, email, password, userType, imageUrl, memberNo } = req.body;
-    if (!imageUrl) return res.status(400).json({ message: "No image URL provided" });
-    const newUser = new allusersModel({ name, email, password, userType, image: imageUrl, memberNo });
+
+    if (!imageUrl) {
+      return res.status(400).json({ message: "No image URL provided" });
+    }
+
+    // Create a new user object with Mongoose User model
+    const newUser = new allusersModel({
+      name,
+      email,
+      password,
+      userType,
+      image: imageUrl, // Assign the Cloudinary URL to the user's image property
+      memberNo,
+    });
+
+    // Save the new user to the database
     const savedUser = await newUser.save();
-    res.status(201).json({ message: "User created successfully!", user: savedUser });
+
+    res
+      .status(201)
+      .json({ message: "User created successfully!", user: savedUser });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create user", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to create user", error: error.message });
   }
 };
 
@@ -149,7 +176,9 @@ const getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
     const user = await allusersModel.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
     res.status(200).json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -158,103 +187,164 @@ const getUserById = async (req, res) => {
 
 const updateUsera = async (req, res) => {
   try {
-    const userId = req.params.id;
-    const { name, email, password, userType, memberNo, image } = req.body;
+    const userId = req.params.id; // Extract the user ID from the request parameters
+    const {
+      name,
+      email,
+      password,
+      userType,
+      memberNo,
+      image,
+      // Add other fields you want to update here
+    } = req.body;
+
+    // Fetch the existing user from the database
     const user = await allusersModel.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update user object with new values
     user.name = name || user.name;
     user.email = email || user.email;
     user.password = password || user.password;
     user.userType = userType || user.userType;
     user.memberNo = memberNo || user.memberNo;
     user.image = image || user.image;
+    // Update other fields similarly as needed
+
+    // Save the updated user
     await user.save();
+
     res.status(200).json({ message: "User data updated", data: user });
   } catch (error) {
-    res.status(500).json({ message: "Error updating user data", error: error.message });
+    // // console.error("Error updating user data:", error);
+    res.status(500).json({ message: "Error updating user data" });
   }
 };
 
 const deleteUsera = async (req, res) => {
   try {
     const userId = req.params.id;
+
+    // Find and delete the user entry from the database
     const deletedUser = await allusersModel.findByIdAndDelete(userId);
-    if (!deletedUser) return res.status(404).json({ message: "User not found" });
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     res.status(200).json({ deletedUser, message: "User deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 const createUserHandler = async (req, res) => {
   try {
-    const { name, email, password, userType } = req.body;
+    const { name, email, password, userType, imageUrl, memberNo } = req.body;
 
+    if (!imageUrl) {
+      return res.status(400).json({ message: "No image URL provided" });
+    }
+
+    // Create a new user object with Mongoose User model
     const newUser = new allusersModel({
       name,
       email,
-      password, // Ensure this password is hashed for security
+      password,
       userType,
+      image: imageUrl, // Assign the Cloudinary URL to the user's image property
+      memberNo,
     });
 
+    // Save the new user to the database
     const savedUser = await newUser.save();
-    res.json(savedUser);
+
+    res
+      .status(201)
+      .json({ message: "User created successfully!", user: savedUser });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to create user", error: error.message });
   }
 };
 
 const updateUserHandler = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, email, password } = req.body;
+    const userId = req.params.id; // Extract the user ID from the request parameters
+    const {
+      name,
+      email,
+      password,
+      userType,
+      memberNo,
+      image,
+      // Add other fields you want to update here
+    } = req.body;
 
-    const updatedUser = await allusersModel.findByIdAndUpdate(
-      id,
-      { name, email, password },
-      { new: true }
-    );
+    // Fetch the existing user from the database
+    const user = await allusersModel.findById(userId);
 
-    res.json(updatedUser);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update user object with new values
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.password = password || user.password;
+    user.userType = userType || user.userType;
+    user.memberNo = memberNo || user.memberNo;
+    user.image = image || user.image;
+    // Update other fields similarly as needed
+
+    // Save the updated user
+    await user.save();
+
+    res.status(200).json({ message: "User data updated", data: user });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    // // console.error("Error updating user data:", error);
+    res.status(500).json({ message: "Error updating user data" });
   }
 };
 
 const deleteUserHandler = async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = req.params.id;
 
-    const deletedUser = await allusersModel.findByIdAndDelete(id);
-
-    if (deletedUser) {
-      res.json(deletedUser);
-    } else {
-      res.status(404).json({ message: "User not found" });
+    // Find and delete the user entry from the database
+    const deletedUser = await allusersModel.findByIdAndDelete(userId);
+    if (!deletedUser) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    res.status(200).json({ deletedUser, message: "User deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
 const getAllUsersHandler = async (req, res) => {
   try {
-    const allUsers = await allusersModel.find();
-    res.status(200).json(allUsers);
+    const agents = await allusersModel.find();
+    res.status(200).json(agents);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
 const getUserByIdHandler = async (req, res) => {
   try {
-    const id = req.params.id;
-    const user = await allusersModel.findById(id);
+    const userId = req.params.id;
+    const user = await allusersModel.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     res.status(200).json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -263,18 +353,22 @@ const updateUserByEmailHandler = async (req, res) => {
     const { email } = req.params;
     const { name, newEmail, password, userType, memberNo } = req.body;
 
+    // Find the user by their email
     const user = await allusersModel.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.name = name || user.name;
-    user.email = newEmail || user.email;
-    user.password = password || user.password;
+    // Update the user's information
+    user.name = name || user.name; // Update name if provided, otherwise keep the existing name
+    user.email = newEmail || user.email; // Update email if provided, otherwise keep the existing email
+    user.password = password || user.password; // Update password if provided, otherwise keep the existing password
     user.userType = userType;
     user.memberNo = memberNo || user.memberNo;
+    // user.image = image || user.image;
 
+    // Save the updated user document
     const updatedUser = await user.save();
 
     res.json(updatedUser);
@@ -282,22 +376,28 @@ const updateUserByEmailHandler = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 const getAllUserImagesHandler = async (req, res) => {
   try {
-    // Find all documents in the 'userdetails' collection where either 'photo' or 'image' fields exist and are not null or empty
-    const allUserImages = await allusersModel.find(
+    // Find all documents in the 'members' collection where 'photo' and 'idProof' fields exist and are not null or empty
+    const allMemberImages = await memberModel.find(
       {
         $or: [
           { photo: { $exists: true, $ne: null, $ne: "" } },
-          { image: { $exists: true, $ne: null, $ne: "" } },
+          { idProof: { $exists: true, $ne: null, $ne: "" } },
         ],
       },
-      "photo image"
+      ["photo", "idProof"]
     );
 
-    const imageUrls = allUserImages.reduce((acc, user) => {
-      if (user.photo) acc.push(user.photo);
-      if (user.image) acc.push(user.image);
+    // Extract image URLs from the retrieved documents
+    const imageUrls = allMemberImages.reduce((acc, member) => {
+      if (member.photo) {
+        acc.push(member.photo);
+      }
+      if (member.idProof) {
+        acc.push(member.idProof);
+      }
       return acc;
     }, []);
 
@@ -306,6 +406,7 @@ const getAllUserImagesHandler = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 module.exports = {
   create,
   readUsers,

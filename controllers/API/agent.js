@@ -58,6 +58,7 @@ const createAgentHandler = async (req, res) => {
       .status(200)
       .json({ message: "Agent data saved to MongoDB", data: newAgent });
   } catch (error) {
+    // // console.error("Error saving agent data:", error);
     res.status(500).json({ message: "Error saving agent data" });
   }
 };
@@ -125,6 +126,7 @@ const updateAgentHandler = async (req, res) => {
 
     res.status(200).json({ message: "Agent data updated", data: agent });
   } catch (error) {
+    // // console.error("Error updating agent data:", error);
     res.status(500).json({ message: "Error updating agent data" });
   }
 };

@@ -4,68 +4,166 @@ const mongoose = require('mongoose');
 
 const createRepayment = async (req, res) => {
   try {
-    const { loanId, paymentDate, dueDate, dueAmount, principalAmount, interest, latePenalties, totalAmount } = req.body;
-    const newRepayment = new repaymentModel({ loanId, paymentDate, dueDate, dueAmount, principalAmount, interest, latePenalties, totalAmount, loanRepaymentStatus: "ongoing", monthstatus: "unpaid" });
+    const {
+      loanId,
+      paymentDate,
+      dueDate,
+      dueAmount,
+      principalAmount,
+      interest,
+      latePenalties,
+      totalAmount,
+    } = req.body;
+
+    const newRepayment = new repaymentModel({
+      loanId,
+      paymentDate,
+      dueDate,
+      dueAmount,
+      principalAmount,
+      interest,
+      latePenalties,
+      totalAmount,
+      loanRepaymentStatus: "ongoing",
+      monthstatus: "unpaid",
+    });
+
     const savedRepayment = await newRepayment.save();
-    res.status(200).json({ message: "Repayment record created", data: savedRepayment });
+    res
+      .status(200)
+      .json({ message: "Repayment record created", data: savedRepayment });
   } catch (error) {
-    res.status(500).json({ message: "Failed to create repayment record", error: error.message });
+    res.status(500).json({
+      message: "Failed to create repayment record",
+      error: error.message,
+    });
   }
 };
 
 const getAllRepayments = async (req, res) => {
   try {
-    const allRepayments = await repaymentModel.find({ loanRepaymentStatus: { $ne: "completed" } });
+    const allRepayments = await repaymentModel.find({
+      loanRepaymentStatus: { $ne: "completed" },
+    });
+
     const today = new Date();
-    const currentMonth = today.getMonth() + 1;
+    const currentMonth = today.getMonth() + 1; // Adding 1 because getMonth() returns a zero-based index
+
     allRepayments.forEach((repayment) => {
       const dueDate = new Date(repayment.dueDate);
       const dueMonth = dueDate.getMonth() + 1;
+
+      // Check if the due month matches the current month
       if (dueMonth !== currentMonth) {
-        repayment.monthstatus = "paid";
+        repayment.monthstatus = "paid"; // Set as paid if due month is not the current month
       } else {
-        repayment.monthstatus = "unpaid";
+        repayment.monthstatus = "unpaid"; // Set as unpaid if due month is the current month
       }
     });
-    res.status(200).json({ message: "All repayment records retrieved successfully", data: allRepayments });
+
+    res.status(200).json({
+      message: "All repayment records retrieved successfully",
+      data: allRepayments,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving repayment records", error: error.message });
+    // // console.error("Error retrieving repayment records:", error);
+    res.status(500).json({
+      message: "Error retrieving repayment records",
+      error: error.message,
+    });
   }
 };
 
 const getRepaymentById = async (req, res) => {
   const repaymentId = req.params.id;
+
   try {
     const repayment = await repaymentModel.findById(repaymentId);
-    if (!repayment) return res.status(404).json({ message: "Repayment record not found" });
-    res.status(200).json({ message: "Repayment record retrieved successfully", data: repayment });
+
+    if (!repayment) {
+      return res.status(404).json({ message: "Repayment record not found" });
+    }
+
+    res.status(200).json({
+      message: "Repayment record retrieved successfully",
+      data: repayment,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving repayment record", error: error.message });
+    // // console.error("Error retrieving repayment record:", error);
+    res.status(500).json({
+      message: "Error retrieving repayment record",
+      error: error.message,
+    });
   }
 };
 
 const updateRepayment = async (req, res) => {
   try {
     const repaymentId = req.params.id;
-    const { loanId, paymentDate, dueDate, principalAmount, interest, latePenalties, totalAmount } = req.body;
-    const updatedRepayment = await repaymentModel.findByIdAndUpdate(repaymentId, { loanId, paymentDate, dueDate, principalAmount, interest, latePenalties, totalAmount }, { new: true });
-    if (!updatedRepayment) return res.status(404).json({ message: "Repayment record not found" });
-    res.status(200).json({ message: "Repayment record updated", data: updatedRepayment });
+    const {
+      loanId,
+      paymentDate,
+      dueDate,
+      dueAmount,
+      principalAmount,
+      interest,
+      latePenalties,
+      totalAmount,
+    } = req.body;
+
+    const updatedRepayment = await repaymentModel.findByIdAndUpdate(
+      repaymentId,
+      {
+        loanId,
+        paymentDate,
+        dueDate,
+        principalAmount,
+        interest,
+        latePenalties,
+        totalAmount,
+      },
+      { new: true }
+    );
+
+    if (!updatedRepayment) {
+      return res.status(404).json({ message: "Repayment record not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Repayment record updated", data: updatedRepayment });
   } catch (error) {
-    res.status(500).json({ message: "Failed to update repayment record", error: error.message });
+    res.status(500).json({
+      message: "Failed to update repayment record",
+      error: error.message,
+    });
   }
 };
 
 const deleteRepayment = async (req, res) => {
   const repaymentId = req.params.id;
   try {
-    const deletedRepayment = await repaymentModel.findByIdAndDelete(repaymentId);
-    if (!deletedRepayment) return res.status(404).json({ message: "Repayment record not found" });
-    res.status(200).json({ message: "Repayment record deleted successfully", data: deletedRepayment });
+    const deletedRepayment = await repaymentModel.findByIdAndDelete(
+      repaymentId
+    );
+
+    if (!deletedRepayment) {
+      return res.status(404).json({ message: "Repayment record not found" });
+    }
+
+    res.status(200).json({
+      message: "Repayment record deleted successfully",
+      data: deletedRepayment,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting repayment record", error: error.message });
+    // // console.error("Error deleting repayment record:", error);
+    res.status(500).json({
+      message: "Error deleting repayment record",
+      error: error.message,
+    });
   }
 };
+
 const checkRepaymentExistsHandler = async (req, res) => {
   try {
     const { loanId } = req.params;
@@ -85,6 +183,7 @@ const checkRepaymentExistsHandler = async (req, res) => {
     const repaymentExistsForCurrentMonth = !!repayment;
     res.json({ exists: repaymentExistsForCurrentMonth });
   } catch (error) {
+    // // console.error("Error checking repayment data:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -106,12 +205,14 @@ const getRepaymentLoanIdHandler = async (req, res) => {
       data: { repaymentId, loanId },
     });
   } catch (error) {
+    // // console.error("Error retrieving loan ID from repayment record:", error);
     res.status(500).json({
       message: "Error retrieving loan ID from repayment record",
       error: error.message,
     });
   }
 };
+
 module.exports = {
   createRepayment,
   getAllRepayments,

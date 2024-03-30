@@ -7,7 +7,7 @@ const createAccount = async (req, res) => {
     try {
       await accountidModel.create({ accountNumber: account.accountNumber });
     } catch (error) {
-      // Handle or log the error if necessary
+      // // console.error(error);
     }
     res.status(201).json(account);
   } catch (error) {
@@ -18,53 +18,107 @@ const createAccount = async (req, res) => {
 const getAllAccounts = async (req, res) => {
   try {
     const allAccounts = await AccountModel.find();
-    res.status(200).json({ message: "All accounts retrieved successfully", data: allAccounts });
+
+    res.status(200).json({
+      message: "All accounts retrieved successfully",
+      data: allAccounts,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving accounts", error: error.message });
+    // // console.error("Error retrieving accounts:", error);
+    res.status(500).json({ message: "Error retrieving accounts" });
   }
 };
 
 const getAccountById = async (req, res) => {
   const accountId = req.params.id;
+
   try {
     const account = await AccountModel.findById(accountId);
-    if (!account) return res.status(404).json({ message: "Account not found" });
-    res.status(200).json({ message: "Account retrieved successfully", data: account });
+
+    if (!account) {
+      return res.status(404).json({ message: "Account not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Account retrieved successfully", data: account });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving account", error: error.message });
+    // // console.error("Error retrieving account:", error);
+    res.status(500).json({ message: "Error retrieving account" });
   }
 };
 
 const getAccountIds = async (req, res) => {
   try {
-    const accountNumbers = await AccountModel.find({ accountType: "Loan" }, "accountNumber");
+    const accountNumbers = await AccountModel.find(
+      { accountType: "Loan" },
+      "accountNumber"
+    );
+
     if (!accountNumbers || accountNumbers.length === 0) {
-      return res.status(404).json({ message: "No account numbers found with the account type as loan" });
+      return res.status(404).json({
+        message: "No account numbers found with the account type as loan",
+      });
     }
+
+    // Extract accountNumbers from the fetched data
     const numbers = accountNumbers.map((account) => account.accountNumber);
-    res.status(200).json({ message: "Account numbers with the account type as loan retrieved successfully", data: numbers });
+
+    res.status(200).json({
+      message:
+        "Account numbers with the account type as loan retrieved successfully",
+      data: numbers,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving account numbers", error: error.message });
+    // // console.error("Error retrieving account numbers:", error);
+    res.status(500).json({ message: "Error retrieving account numbers" });
   }
 };
 
 const getApprovedAccountIds = async (req, res) => {
   try {
-    const approvedAccountNumbers = await AccountModel.find({ accountType: "Loan", approval: "Approved" }, "accountNumber");
+    // Fetch only approved accounts by adding the status condition
+    const approvedAccountNumbers = await AccountModel.find(
+      { accountType: "Loan", approval: "Approved" },
+      "accountNumber"
+    );
+
     if (!approvedAccountNumbers || approvedAccountNumbers.length === 0) {
-      return res.status(404).json({ message: "No approved account numbers found with the account type as loan" });
+      return res.status(404).json({
+        message:
+          "No approved account numbers found with the account type as loan",
+      });
     }
-    const numbers = approvedAccountNumbers.map((account) => account.accountNumber);
-    res.status(200).json({ message: "Approved account numbers with the account type as loan retrieved successfully", data: numbers });
+
+    // Extract accountNumbers from the fetched data
+    const numbers = approvedAccountNumbers.map(
+      (account) => account.accountNumber
+    );
+
+    res.status(200).json({
+      message:
+        "Approved account numbers with the account type as loan retrieved successfully",
+      data: numbers,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error fetching approved account numbers", error: error.message });
+    // Handle the error or log it
+    // console.error("Error retrieving approved account numbers:", error);
+    res
+      .status(500)
+      .json({ message: "Error retrieving approved account numbers" });
   }
 };
 
 const updateAccount = async (req, res) => {
   try {
-    const account = await AccountModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!account) return res.status(404).json({ error: "Account not found" });
+    const account = await AccountModel.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    if (!account) {
+      return res.status(404).json({ error: "Account not found" });
+    }
     res.json(account);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -84,7 +138,9 @@ const readAccountNumbers = async (req, res) => {
 const deleteAccount = async (req, res) => {
   try {
     const account = await AccountModel.findByIdAndDelete(req.params.id);
-    if (!account) return res.status(404).json({ error: "Account not found" });
+    if (!account) {
+      return res.status(404).json({ error: "Account not found" });
+    }
     res.json({ message: "Account deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -94,25 +150,46 @@ const deleteAccount = async (req, res) => {
 const getAccountStatement = async (req, res) => {
   try {
     const { startDate, endDate, accountNumber } = req.query;
+
+    // Convert start and end dates to JavaScript Date objects
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const transactions = await TransactionsModel.find({ date: { $gte: start, $lte: end }, accountNumber }, "date description transactionAmount debitOrCredit currentBalancemoment");
+
+    // Fetch transactions based on the provided criteria
+    const transactions = await TransactionsModel.find(
+      {
+        date: { $gte: start, $lte: end },
+        accountNumber: accountNumber,
+      },
+      "date description transactionAmount debitOrCredit currentBalancemoment"
+    );
+
+    // Format the transactions to match the required response format
     const formattedTransactions = transactions.map((transaction) => {
       let debit = 0;
       let credit = 0;
-      if (transaction.debitOrCredit === "Debit") debit = transaction.transactionAmount;
-      else if (transaction.debitOrCredit === "Credit") credit = transaction.transactionAmount;
+
+      if (transaction.debitOrCredit === "Debit") {
+        debit = transaction.transactionAmount;
+      } else if (transaction.debitOrCredit === "Credit") {
+        credit = transaction.transactionAmount;
+      }
+
       return {
         Date: transaction.date,
         Description: transaction.description,
         Debit: debit,
         Credit: credit,
-        Balance: transaction.currentBalancemoment,
+        Balance: transaction.currentBalancemoment, // Assuming this field contains the calculated balance
       };
     });
+
+    // Return the formatted data
     res.status(200).json(formattedTransactions);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch transactions", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to fetch transactions", error: error.message });
   }
 };
 
@@ -135,9 +212,10 @@ const accountDetailsHandler = async (req, res) => {
       }
     });
 
+    // Modify the query to fetch associated loan IDs based on the accountNumber
     const associatedLoans = await loansModel
       .find({ account: accountNumber })
-      .distinct("loanId");
+      .distinct("loanId"); // Assuming 'accountNumber' is the correct field in your repaymentModel
 
     return res.status(200).json({
       accountNumber: account.accountNumber,
@@ -179,13 +257,14 @@ const memberAccountDetailsHandler = async (req, res) => {
       }
     });
 
+    // Fetch associated loan IDs based on the accountNumber
     const associatedLoans = await loansModel
       .find({ account: accountNumber })
       .distinct("loanId");
 
     return res.status(200).json({
       accountNumber: account.accountNumber,
-      availableBalance: parseFloat(currentBalance.toFixed(2)),
+      availableBalance: parseFloat(currentBalance.toFixed(2)), // Rounding balance
       currentBalance: parseFloat(account.currentBalance),
       associatedLoanIds: associatedLoans.join(", "),
     });
@@ -205,12 +284,16 @@ const getTotalCurrentBalanceHandler = async (req, res) => {
       },
     ]);
 
-    const balance = totalCurrentBalance.length > 0 ? totalCurrentBalance[0].totalBalance : 0;
-    res.json({ totalCurrentBalance: balance });
+    if (totalCurrentBalance.length > 0) {
+      res.json({ totalCurrentBalance: totalCurrentBalance[0].totalBalance });
+    } else {
+      res.json({ totalCurrentBalance: 0 });
+    }
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
 const createAccountHandler = async (req, res) => {
   try {
     const newAccount = new AccountModel(req.body);
@@ -279,11 +362,17 @@ const deleteAccountHandler = async (req, res) => {
 const getDetailsByAccountNumberHandler = async (req, res) => {
   try {
     const { accountNumber } = req.params;
+
+    // Assuming you have an 'accounts' collection in your database
     const accountDetails = await AccountModel.findOne({ accountNumber });
+
     if (!accountDetails) {
       return res.status(404).json({ message: "Account details not found" });
     }
+
+    // Extract necessary details like account number and borrower name
     const { memberNo, memberName } = accountDetails;
+
     res.status(200).json({ memberNo, memberName });
   } catch (error) {
     res.status(500).json({
@@ -295,12 +384,16 @@ const getDetailsByAccountNumberHandler = async (req, res) => {
 
 const getDetailsByMemberIdHandler = async (req, res) => {
   try {
-    const { memberId } = req.params;
+    const { memberId } = req.params; // Corrected from { memberNo }
+
     const accountDetails = await AccountModel.findOne({ memberNo: memberId });
+
     if (!accountDetails) {
       return res.status(404).json({ message: "Account details not found" });
     }
+
     const { accountNumber, memberName } = accountDetails;
+
     res.status(200).json({ accountNumber, memberName });
   } catch (error) {
     res.status(500).json({
@@ -309,6 +402,7 @@ const getDetailsByMemberIdHandler = async (req, res) => {
     });
   }
 };
+
 const getAllAccountImagesHandler = async (req, res) => {
   try {
     // Find all documents in the 'accounts' collection where 'photo' and 'idProof' fields exist and are not null or empty
@@ -338,6 +432,7 @@ const getAllAccountImagesHandler = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 const approveAccountHandler = async (req, res) => {
   const { accountId } = req.params;
 

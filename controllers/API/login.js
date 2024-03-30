@@ -132,32 +132,31 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const user = await allusersModel.findOne({ email });
-
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        // Admin Franchise agent User
-        // This is not secure - comparing passwords in plaintext
-        if (user.password !== password) {
-            return res.status(401).json({ message: "Invalid Password" });
-        }
-
-        // If the passwords match, create a JWT
-        const payload = {
-            userId: user._id,
-            email: user.email,
-            username: user.firstName,
-            password: user.password,
-            branch: user.branchName,
-        };
-
-        const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" }); // Set your own secret key and expiration time
-
-        res.json({ message: "Login Success!", token });
+      const user = await userModel.findOne({ email });
+  
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      // Admin Franchise agent User
+      // This is not secure - comparing passwords in plaintext
+      if (user.password !== password) {
+        return res.status(401).json({ message: "Invalid Password" });
+      }
+  
+      // If the passwords match, create a JWT
+      const payload = {
+        userId: user._id,
+        email: user.email,
+        username: user.firstName,
+        password: user.password,
+        branch: user.branchName,
+      };
+  
+      const token = jwt.sign(payload, "yourSecretKey", { expiresIn: "1h" }); // Set your own secret key and expiration time
+  
+      res.json({ message: "Login Success!", token });
     } catch (error) {
-        console.error("Error:", error); // Log the error
-        res.status(500).json({ message: "Internal Server Error" });
+      res.status(500).json({ message: "Internal Server Error" });
     }
 };
 
@@ -166,14 +165,14 @@ const verify_token = async (req, res) => {
 
     // Verify the token
     jwt.verify(token, "yourSecretKey", (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ message: "Token is not valid" });
-        }
-
-        // Token is valid
-        // You might perform additional checks or operations based on the decoded token data
-
-        res.status(200).json({ message: "Token is valid" });
+      if (err) {
+        return res.status(401).json({ message: "Token is not valid" });
+      }
+  
+      // Token is valid
+      // You might perform additional checks or operations based on the decoded token data
+  
+      res.status(200).json({ message: "Token is valid" });
     });
 };
 

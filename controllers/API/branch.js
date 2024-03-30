@@ -3,7 +3,16 @@ const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, member
 const mongoose = require('mongoose');
 
 const createBranch = async (req, res) => {
-  const { branchCode, branchName, name, email, password, contactphone, branchaddress, userType } = req.body;
+  const {
+    branchCode,
+    branchName,
+    name,
+    email,
+    password,
+    contactphone,
+    branchaddress,
+    userType,
+  } = req.body;
 
   try {
     const newUser = new allusersModel({
@@ -13,15 +22,18 @@ const createBranch = async (req, res) => {
       password,
       contactphone,
       branchaddress,
-      userType: "manager",
+      userType: "manager", // Set userType to 'manager'
       branchCode,
     });
 
     await newUser.save();
 
-    res.status(200).json({ message: "User data saved to MongoDB", data: newUser });
+    res
+      .status(200)
+      .json({ message: "User data saved to MongoDB", data: newUser });
   } catch (error) {
     if (error.name === "ValidationError") {
+      // Handling validation errors
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({ message: "Validation error", errors });
     }
@@ -33,7 +45,16 @@ const createBranch = async (req, res) => {
 
 const updateBranch = async (req, res) => {
   const branchId = req.params.id;
-  const { branchCode, branchName, name, email, password, contactphone, branchaddress, userType } = req.body;
+  const {
+    branchCode,
+    branchName,
+    name,
+    email,
+    password,
+    contactphone,
+    branchaddress,
+    userType,
+  } = req.body;
 
   try {
     const updatedBranch = await allusersModel.findByIdAndUpdate(
@@ -46,7 +67,7 @@ const updateBranch = async (req, res) => {
         password,
         contactphone,
         branchaddress,
-        userType: "manager",
+        userType: "manager", // Set userType to 'manager'
       },
       { new: true }
     );
@@ -55,9 +76,12 @@ const updateBranch = async (req, res) => {
       return res.status(404).json({ message: "Branch not found" });
     }
 
-    res.status(200).json({ message: "Branch updated successfully", data: updatedBranch });
+    res
+      .status(200)
+      .json({ message: "Branch updated successfully", data: updatedBranch });
   } catch (error) {
     if (error.name === "ValidationError") {
+      // Handling validation errors
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({ message: "Validation error", errors });
     }
@@ -71,10 +95,16 @@ const deleteBranch = async (req, res) => {
   const branchId = req.params.id;
   try {
     const deletedBranch = await allusersModel.findByIdAndDelete(branchId);
-    if (!deletedBranch) return res.status(404).json({ message: "Branch not found" });
-    res.status(200).json({ message: "Branch deleted successfully", data: deletedBranch });
+
+    if (!deletedBranch) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+
+    res
+      .status(200)
+      .json({ message: "Branch deleted successfully", data: deletedBranch });
   } catch (error) {
-    console.error("Error deleting branch:", error);
+    // // // console.error("Error deleting branch:", error);
     res.status(500).json({ message: "Error deleting branch" });
   }
 };
@@ -82,21 +112,32 @@ const deleteBranch = async (req, res) => {
 const readBranch = async (req, res) => {
   try {
     const managerBranches = await allusersModel.find({ userType: "manager" });
-    res.status(200).json({ message: "Manager branches retrieved successfully", data: managerBranches });
+
+    res.status(200).json({
+      message: "Manager branches retrieved successfully",
+      data: managerBranches,
+    });
   } catch (error) {
-    console.error("Error retrieving manager branches:", error);
+    // // // console.error("Error retrieving manager branches:", error);
     res.status(500).json({ message: "Error retrieving manager branches" });
   }
 };
 
 const getBranchById = async (req, res) => {
   const branchId = req.params.id;
+
   try {
+    // Find the branch by ID in your MongoDB database using Mongoose
     const branch = await allusersModel.findById(branchId);
-    if (!branch) return res.status(404).json({ message: "Branch not found" });
+
+    if (!branch) {
+      return res.status(404).json({ message: "Branch not found" });
+    }
+
+    // If the branch is found, send it as a response
     res.status(200).json(branch);
   } catch (error) {
-    console.error("Error retrieving branch:", error);
+    // // // console.error("Error retrieving branch:", error);
     res.status(500).json({ message: "Error retrieving branch" });
   }
 };
@@ -104,16 +145,22 @@ const getBranchById = async (req, res) => {
 const fetchBranchNames = async (req, res) => {
   try {
     const managerBranches = await allusersModel.find(
-      { userType: "manager" },
+      { userType: "manager" }, // Filter by userType 'manager'
       { branchName: 1, _id: 0 }
     );
+
     const branchNames = managerBranches.map((branch) => branch.branchName);
-    res.status(200).json({ message: "Manager branch names retrieved successfully", data: branchNames });
+
+    res.status(200).json({
+      message: "Manager branch names retrieved successfully",
+      data: branchNames,
+    });
   } catch (error) {
-    console.error("Error retrieving manager branch names:", error);
+    // // // console.error("Error retrieving manager branch names:", error);
     res.status(500).json({ message: "Error retrieving manager branch names" });
   }
 };
+
 const getBranchDatabasesHandler = async (req, res) => {
   try {
     const { objectId } = req.params; // Get the objectId from the route parameters
@@ -139,6 +186,7 @@ const getBranchDatabasesHandler = async (req, res) => {
       res.status(400).json({ message: "Invalid ObjectId" });
     }
   } catch (error) {
+    // // console.error("Error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };

@@ -16,32 +16,50 @@ const timestampFilePath = "last_execution_timestamp.txt";
 
 const getUserEmailPasswordHandler = async (req, res) => {
   const { token } = req.body;
-
+  // Check if the token exists
   if (!token) {
     return res.status(401).json({ error: "Token is missing" });
   }
 
   try {
+    // Verify and decode the token to extract the username
     const decoded = jwt.verify(token, "yourSecretKey");
-    const { email } = decoded;
-    const { password } = decoded;
 
-    res.json({ email, password });
+    // Extract the username from the decoded token payload
+    const { username } = decoded;
+
+    // Send the decoded username back to the client
+    res.json({ username });
   } catch (err) {
+    // Handle token verification or decoding errors
+    // // // console.error("Token verification error:", err);
     res.status(401).json({ error: "Unauthorized" });
   }
 };
 
 const randomgenMemberIdHandler = async (req, res) => {
   try {
+    // Find the highest memberNo currently in use
     const latestMemberIdDoc = await memberidsModel.findOne().sort({ memberNo: -1 });
+
+    // Determine the next memberNo
     let nextMemberNo;
     if (!latestMemberIdDoc) {
-      nextMemberNo = 52;
+      // If there are no members yet, start from your base number
+      nextMemberNo = 52; // Starting point
     } else {
+      // Increment the last used memberNo by 1
       nextMemberNo = latestMemberIdDoc.memberNo + 1;
     }
+
+    // Save the new member ID (if required, depends on your application logic)
+    // const newMemberId = new memberidsModel({ memberNo: nextMemberNo });
+    // await newMemberId.save();
+
+    // Convert the ID to a string with leading zeros for presentation
     const uniqueid = nextMemberNo.toString().padStart(8, '0');
+
+    // Return the unique ID to the client
     res.json({ uniqueid });
   } catch (error) {
     console.error("Error generating unique member ID:", error);
@@ -57,7 +75,7 @@ const randomgenLoanIdHandler = async (req, res) => {
     const random = Math.floor(Math.random() * 900000 + 100000);
     uniqueid = 5153000000 + random;
 
-    const allLoans = await loanidModel.find({}, "loanId");
+    const allLoans = await loanidModel.find({}, "loanId"); // Fetch only the 'loanId' field
     const loanIds = allLoans.map((loan) => loan.loanId);
 
     if (!loanIds.includes(uniqueid)) {
@@ -73,8 +91,8 @@ const randomgenAccountIdHandler = async (req, res) => {
   let uniqueid;
 
   while (!isUniqueIdFound) {
-    const random = Math.floor(Math.random() * 9000000) + 1000000;
-    uniqueid = "2180" + random.toString();
+    const random = Math.floor(Math.random() * 9000000) + 1000000; // Generates a random 6-digit number
+    uniqueid = "2180" + random.toString(); // Combines '2180' with the random 6-digit number
 
     const allAccounts = await accountidModel.find({}, "accountNumber");
     const accountNumbers = allAccounts.map((account) => account.accountNumber);
@@ -92,8 +110,8 @@ const randomgenBranchCodeHandler = async (req, res) => {
   let uniqueid;
 
   while (!isUniqueIdFound) {
-    const random = Math.floor(Math.random() * 90000) + 10000;
-    uniqueid = "2180" + random.toString();
+    const random = Math.floor(Math.random() * 90000) + 10000; // Generates a random 5-digit number
+    uniqueid = "2180" + random.toString(); // Combines '2180' with the random 5-digit number
 
     const allAccounts = await allusersModel.find({}, "branchCode");
     const accountNumbers = allAccounts.map((account) => account.accountNumber);
@@ -111,10 +129,13 @@ const randomgenWalletIdHandler = async (req, res) => {
   let uniqueWalletId;
 
   while (!isUniqueWalletIdFound) {
-    const random = Math.floor(Math.random() * 900000 + 100000);
+    const random = Math.floor(Math.random() * 900000 + 100000); // Generate a random 5-digit number
     uniqueWalletId = random;
 
-    const existingWallet = await walletModel.findOne({ walletid: uniqueWalletId });
+    // Check if the generated wallet ID already exists in the database
+    const existingWallet = await walletModel.findOne({
+      walletid: uniqueWalletId,
+    });
 
     if (!existingWallet) {
       isUniqueWalletIdFound = true;
@@ -138,6 +159,7 @@ const calculateRevenueHandler = async (req, res) => {
     let endMonth = 12;
 
     if (month && !isNaN(parseInt(month)) && month >= 1 && month <= 12) {
+      // If month is specified and valid, calculate revenue for that specific month
       startMonth = parseInt(month);
       endMonth = parseInt(month);
     }
@@ -145,8 +167,10 @@ const calculateRevenueHandler = async (req, res) => {
     let totalRevenue = 0;
 
     for (let currMonth = startMonth; currMonth <= endMonth; currMonth++) {
-      const startDate = new Date(year, currMonth - 1, 1);
-      const endDate = new Date(year, currMonth, 0);
+      const startDate = new Date(year, currMonth - 1, 1); // Month in JavaScript Date starts from 0 (January)
+      const endDate = new Date(year, currMonth, 0); // To get the last day of the month
+
+      // Set the end date to the end of the day to include the full month
       endDate.setHours(23, 59, 59, 999);
 
       const allLoans = await loansModel.find({});
@@ -244,26 +268,32 @@ const populateRevenueHandler = async (req, res) => {
   const currentDate = new Date();
   const currentTimestamp = currentDate.getTime();
 
+  // Read the last execution timestamp from the file
   let lastExecutionTimestamp = 0;
   try {
     const timestampContent = await fs.readFile(timestampFilePath, "utf8");
     lastExecutionTimestamp = parseInt(timestampContent, 10);
   } catch (readError) {
+    // Log the error or handle it appropriately
     console.error("Error reading timestamp file:", readError.message);
   }
 
+  // Calculate the time difference in hours
   const hoursSinceLastExecution = calculateTimeDifference(
     lastExecutionTimestamp,
     currentTimestamp
   );
 
+  // Check if more than 2 hours have passed since the last execution
   if (hoursSinceLastExecution >= 2) {
     try {
+      // Update the timestamp file with the current timestamp
       await fs.writeFile(timestampFilePath, currentTimestamp.toString());
 
       const currentYear = currentDate.getFullYear();
       const yearsToCalculate = 15;
 
+      // Array to hold all the promises for revenue calculation
       const promises = [];
 
       for (let year = 2023; year <= currentYear + yearsToCalculate; year++) {
@@ -272,15 +302,19 @@ const populateRevenueHandler = async (req, res) => {
             ? currentDate.getMonth() + 1
             : 12;
 
+        // Create an array of months for the current year
         const monthsArray = Array.from(
           { length: totalMonths },
           (_, month) => month + 1
         );
 
+        // Execute revenue calculation for all months of the current year concurrently
         const yearPromises = monthsArray.map(async (month) => {
           try {
             const { monthlyRevenue } = await calculateRevenue(year, month);
+            // Process or log monthlyRevenue if needed
           } catch (error) {
+            // Log the error or handle it appropriately
             console.error(
               `Error calculating revenue for ${year}-${month}:`,
               error.message
@@ -291,10 +325,12 @@ const populateRevenueHandler = async (req, res) => {
         promises.push(...yearPromises);
       }
 
+      // Wait for all promises to resolve
       await Promise.all(promises);
 
       res.json({ message: "Revenue data population completed" });
     } catch (error) {
+      // Log the error or handle it appropriately
       console.error("Error populating revenue data:", error.message);
       res.status(500).json({ error: "Internal server error" });
     }
@@ -312,6 +348,7 @@ const getAdminDatabasesHandler = async (req, res) => {
 
     res.status(200).json({ databases: adminDatabases });
   } catch (error) {
+    // // console.error("Error:", error);
     res.status(500).json({ message: "Server Error" });
   }
 };
@@ -440,7 +477,7 @@ const getRecentCollectionHandler = async (req, res) => {
     const formattedData = await Promise.all(
       repaymentDetails.map(async (detail) => {
         const account = await AccountModel.findOne({
-          accountId: detail.accountId,
+          accountId: repaymentDetails.accountId,
         }).lean();
         return {
           Date: detail.paymentDate,
@@ -454,7 +491,10 @@ const getRecentCollectionHandler = async (req, res) => {
 
     res.status(200).json({ RecentCollection: formattedData });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving recent collection data" });
+    // // console.error("Error retrieving recent collection data:", error);
+    res
+      .status(500)
+      .json({ message: "Error retrieving recent collection data" });
   }
 };
 

@@ -5,11 +5,20 @@ const mongoose = require('mongoose');
 const createExpense = async (req, res) => {
   try {
     const { date, category, amount, reference, note, branchName } = req.body;
-    const newExpense = new ExpenseModel({ date, category, amount, reference, note, branchName });
+    const newExpense = new ExpenseModel({
+      date,
+      category,
+      amount,
+      reference,
+      note,
+      branchName,
+    });
     const savedExpense = await newExpense.save();
     res.status(201).json(savedExpense);
   } catch (error) {
-    res.status(400).json({ message: "Error creating expense", error: error.message });
+    res
+      .status(400)
+      .json({ message: "Error creating expense", error: error.message });
   }
 };
 
@@ -18,7 +27,9 @@ const getAllExpenses = async (req, res) => {
     const expenses = await ExpenseModel.find();
     res.json(expenses);
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving expenses", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error retrieving expenses", error: error.message });
   }
 };
 
@@ -26,10 +37,16 @@ const updateExpense = async (req, res) => {
   try {
     const { id } = req.params;
     const { date, category, amount, reference, note } = req.body;
-    const updatedExpense = await ExpenseModel.findByIdAndUpdate(id, { date, category, amount, reference, note }, { new: true });
+    const updatedExpense = await ExpenseModel.findByIdAndUpdate(
+      id,
+      { date, category, amount, reference, note },
+      { new: true }
+    );
     res.json(updatedExpense);
   } catch (error) {
-    res.status(400).json({ message: "Error updating expense", error: error.message });
+    res
+      .status(400)
+      .json({ message: "Error updating expense", error: error.message });
   }
 };
 
@@ -39,7 +56,9 @@ const deleteExpense = async (req, res) => {
     await ExpenseModel.findByIdAndDelete(id);
     res.json({ message: "Expense deleted successfully" });
   } catch (error) {
-    res.status(400).json({ message: "Error deleting expense", error: error.message });
+    res
+      .status(400)
+      .json({ message: "Error deleting expense", error: error.message });
   }
 };
 
@@ -47,13 +66,14 @@ const reportExpensesHandler = async (req, res) => {
   try {
     const { startDate, endDate, expenseType, sortBy, sortOrder } = req.query;
 
+    // Construct the query based on provided parameters
     let query = {};
 
     if (startDate && endDate) {
       query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
     }
     if (expenseType) {
-      query.category = expenseType;
+      query.category = expenseType; // Assuming 'category' holds the expense type
     }
 
     const sortOptions = {};
@@ -61,13 +81,16 @@ const reportExpensesHandler = async (req, res) => {
     if (sortBy && sortOrder) {
       sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
     } else {
+      // Default sorting by date in descending order if no sort options provided
       sortOptions.date = -1;
     }
 
     const expenses = await ExpenseModel.find(query).sort(sortOptions);
     res.json(expenses);
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving expenses", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Error retrieving expenses", error: error.message });
   }
 };
 
