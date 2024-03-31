@@ -2,6 +2,15 @@
 const mongoose = require('mongoose');
 const dotenv = require("dotenv");
 const path = require("path");
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const { v4: uuidv4 } = require("uuid");
+const fs = require("fs").promises;
+const moment = require("moment");
+const cloudinary = require("cloudinary").v2;
 
 // Specify the absolute path to your .env file
 const envPath = path.resolve(__dirname, "../.env");

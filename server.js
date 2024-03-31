@@ -1,14 +1,20 @@
 // server.js
-const express = require('express');
-const morgan = require("morgan");
-const bodyParser = require("body-parser");
 const connectDB = require('./config/config');
 const Routes = require("./routes/route");
-const ImageRoutes = require("./controllers/Image/image")
-const path = require("path");
+const ImageRoutes = require("./controllers/Image/image");
+const morgan = require("morgan");
+const mongoose = require('mongoose');
 const dotenv = require("dotenv");
-const fs = require("fs");
+const path = require("path");
+const express = require("express");
+const bodyParser = require("body-parser");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const multer = require("multer");
+const { v4: uuidv4 } = require("uuid");
+const fs = require("fs");
+const moment = require("moment");
+const cloudinary = require("cloudinary").v2;
 
 // Specify the absolute path to your .env file
 const envPath = path.resolve(__dirname, "../.env");
