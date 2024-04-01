@@ -1,5 +1,5 @@
-const { memberModel } = require('../../models/restdb');
-const { walletModel, memberidsModel } = require("../../models/logindb");
+const { memberModel, loansModel, repaymentModel, AccountModel, TransactionsModel, RepaymentDetails } = require('../../models/database');
+const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, memberidsModel, loanidModel, accountidModel } = require("../../models/database");
 const mongoose = require('mongoose');
 const dotenv = require("dotenv");
 const path = require("path");
@@ -12,6 +12,7 @@ const { v4: uuidv4 } = require("uuid");
 const fs = require("fs").promises;
 const moment = require("moment");
 const cloudinary = require("cloudinary").v2;
+const router = express.Router();
 
 // Define multer storage and file upload settings
 const storage = multer.memoryStorage();

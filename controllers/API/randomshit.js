@@ -1,5 +1,5 @@
-const { memberModel, loansModel, repaymentModel, AccountModel, TransactionsModel, RepaymentDetails } = require('../../models/restdb');
-const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, memberidsModel, loanidModel, accountidModel } = require("../../models/logindb");
+const { memberModel, loansModel, repaymentModel, AccountModel, TransactionsModel, RepaymentDetails } = require('../../models/database');
+const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, memberidsModel, loanidModel, accountidModel } = require("../../models/database");
 const mongoose = require('mongoose');
 const dotenv = require("dotenv");
 const path = require("path");
@@ -390,22 +390,32 @@ const switchDatabaseHandler = async (req, res) => {
   const { dbName } = req.params;
 
   try {
-    const newConnection = mongoose.createConnection(process.env.MONGODB_URI, {
-      dbName,
-    });
+    mongoose.connection
+      .close()
+      .then(() => {
+        return mongoose.connect(uri, {
+          dbName,
+        });
+      })
+      .then(() => {
+        // Event handling for successful connection
+        mongoose.connection.on("connected", () => {
+          // console.log("Connected to MongoDB(agent)");
+        });
 
-    newConnection.on("connected", () => {
-      console.log("Connected to MongoDB - Secondary Connection");
-    });
+        // Event handling for disconnection
+        mongoose.connection.on("disconnected", () => {
+          // console.log("Disconnected from MongoDB(agent)");
+        });
 
-    newConnection.on("disconnected", () => {
-      console.log("Disconnected from MongoDB - Secondary Connection");
-    });
-
-    newConnection.on("error", (err) => {
-      console.error("Connection error:", err);
-    });
-
+        // Event handling for error
+        mongoose.connection.on("error", (err) => {
+          // console.error("Connection error:", err);
+        });
+      })
+      .catch((err) => {
+        // console.error("Error:", err);
+      });
     res.json({ message: "Branch switched successfully" });
   } catch (error) {
     console.error("Switch Database Error:", error);

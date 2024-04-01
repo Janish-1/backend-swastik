@@ -1,5 +1,5 @@
-const { memberModel, loansModel, repaymentModel, AccountModel, TransactionsModel, RepaymentDetails } = require('../../models/restdb');
-const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, memberidsModel, loanidModel, accountidModel } = require("../../models/logindb");
+const { memberModel, loansModel, repaymentModel, AccountModel, TransactionsModel, RepaymentDetails } = require('../../models/database');
+const { allusersModel, ExpenseModel, categoryModel, Revenue, walletModel, memberidsModel, loanidModel, accountidModel } = require("../../models/database");
 const mongoose = require('mongoose');
 const dotenv = require("dotenv");
 const path = require("path");
@@ -50,14 +50,14 @@ const createLoan = async (req, res) => {
     try {
       await loanidModel.create({ loanId: loanId });
     } catch (error) {
-      // // console.error(error);
+      console.error(error);
     }
 
     res
       .status(200)
       .json({ message: "Loan data saved to MongoDB", data: newLoan });
   } catch (error) {
-    // // console.error("Error saving loan data:", error);
+    console.error("Error saving loan data:", error);
     res.status(500).json({ message: "Error saving loan data" });
   }
 };

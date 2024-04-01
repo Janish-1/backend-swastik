@@ -1,5 +1,14 @@
-// models.js
 const mongoose = require('mongoose');
+const dotenv = require("dotenv");
+const path = require("path");
+
+// Specify the absolute path to your .env file
+const envPath = path.resolve(__dirname, "../.env");
+
+// Load environment variables from the specified .env file
+dotenv.config({ path: envPath });
+
+const uri = process.env.MONGODB_URI;
 
 const memberSchema = new mongoose.Schema(
   {
@@ -115,18 +124,152 @@ const repaymentDetailsSchema = new mongoose.Schema(
   { collection: "RepaymentDetails" }
 );
 
-const memberModel = mongoose.model("Member", memberSchema);
-const loansModel = mongoose.model("Loan", loanSchema);
-const repaymentModel = mongoose.model("Repayment", repaymentSchema);
-const AccountModel = mongoose.model("Account", accountSchema);
-const TransactionsModel = mongoose.model("Transaction", transactionSchema);
-const RepaymentDetails = mongoose.model("RepaymentDetails", repaymentDetailsSchema);
+const memberModel = mongoose.model("members", memberSchema);
+const loansModel = mongoose.model("loans", loanSchema);
+const repaymentModel = mongoose.model("repayments", repaymentSchema);
+const AccountModel = mongoose.model("accounts", accountSchema);
+const TransactionsModel = mongoose.model("transactions", transactionSchema);
+const RepaymentDetails = mongoose.model(
+  "RepaymentDetails",
+  repaymentDetailsSchema
+);
+
+const expenseSchema = new mongoose.Schema(
+  {
+    date: { type: Date, default: Date.now },
+    category: { type: String, required: true },
+    amount: { type: Number, required: true },
+    reference: { type: String, required: true },
+    note: { type: String, required: true },
+    branchName: { type: String, required: true },
+  },
+  { collection: "expenses" }
+);
+
+const categorySchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+  },
+  { collection: "category" }
+);
+
+const revenueSchema = new mongoose.Schema(
+  {
+    year: { type: Number, required: true },
+    month: { type: Number, required: true },
+    monthlyRevenue: { type: Number, required: true },
+  },
+  { collection: "Revenue" }
+);
+
+const walletschema = mongoose.Schema(
+  {
+    walletId: { type: Number, required: true, unique: true },
+    numberOfShares: { type: Number, required: true },
+  },
+  { collection: "Wallet" }
+);
+
+const userdetailsSchema = new mongoose.Schema(
+  {
+    image: { type: String },
+    dbName: { type: String },
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    userType: {
+      type: String,
+      enum: ["user", "admin", "agent", "franchise", "manager"],
+      default: "agent",
+      required: true,
+    },
+    branchName: { type: String },
+    contactphone: { type: Number },
+    branchaddress: { type: String },
+    qualification: { type: String },
+    fatherName: { type: String },
+    maritalStatus: { type: String },
+    dob: { type: String },
+    age: { type: String },
+    aadhar: { type: String },
+    panCard: { type: String },
+    address: { type: String },
+    permanentAddress: { type: String },
+    mobile: { type: String },
+    nomineeName: { type: String },
+    nomineeRelationship: { type: String },
+    nomineeDob: { type: String },
+    nomineeMobile: { type: String },
+    photo: { type: String },
+    memberNo: { type: Number },
+    branchCode: { type: Number },
+  },
+  { collection: "allusers" }
+);
+
+const memberids = new mongoose.Schema(
+  {
+    memberNo: { type: Number, unique: true },
+  },
+  { collection: "membersids" }
+);
+
+const loanids = new mongoose.Schema(
+  {
+    loanId: { type: Number, unique: true },
+  },
+  { collection: "loanids" }
+);
+
+const accountids = new mongoose.Schema(
+  {
+    accountNumber: { type: Number, unique: true },
+  },
+  { collection: "accountids" }
+);
+
+loginDB = mongoose.createConnection(uri, {
+  dbName: "logindatabase",
+});
+
+// Event handling for successful connection
+loginDB.on("connected", () => {
+  console.log("Connected to loginDB");
+});
+
+// Event handling for disconnection
+loginDB.on("disconnected", () => {
+  console.log("Disconnected from loginDB");
+});
+
+// Event handling for error
+loginDB.on("error", (err) => {
+  console.error("Connection error:", err);
+});
+
+const allusersModel = loginDB.model("allusers", userdetailsSchema);
+const ExpenseModel = loginDB.model("expenses", expenseSchema);
+const categoryModel = loginDB.model("category", categorySchema);
+const Revenue = loginDB.model("Revenue", revenueSchema);
+const walletModel = loginDB.model("wallet", walletschema);
+const memberidsModel = loginDB.model("membersids", memberids);
+const loanidModel = loginDB.model("loanids", loanids);
+const accountidModel = loginDB.model("accountids", accountids);
 
 module.exports = {
+  allusersModel,
+  ExpenseModel,
+  categoryModel,
+  Revenue,
+  walletModel,
+  memberidsModel,
+  loanidModel,
+  accountidModel,
   memberModel,
   loansModel,
   repaymentModel,
   AccountModel,
   TransactionsModel,
-  RepaymentDetails
-};
+  RepaymentDetails,
+  loginDB
+}

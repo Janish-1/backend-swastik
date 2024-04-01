@@ -22,8 +22,25 @@ const connectDB = async () => {
     // MongoDB connection URL
     const uri = process.env.MONGODB_URI;
 
-    await mongoose.connect(uri, { dbName: "logindatabase" });
-
+    loginDB = mongoose.createConnection(uri, {
+      dbName: "logindatabase",
+    });
+    
+    // Event handling for successful connection
+    loginDB.on("connected", () => {
+      console.log("Connected to loginDB");
+    });
+    
+    // Event handling for disconnection
+    loginDB.on("disconnected", () => {
+      console.log("Disconnected from loginDB");
+    });
+    
+    // Event handling for error
+    loginDB.on("error", (err) => {
+      console.error("Connection error:", err);
+    });
+  
     console.log('MongoDB Connected - Login Database');
   } catch (error) {
     console.error('MongoDB Connection Error:', error.message);
